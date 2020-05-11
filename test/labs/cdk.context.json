@@ -1,0 +1,8 @@
+{
+  "availability-zones:account=970412728307:region=eu-west-1": [
+    "eu-west-1a",
+    "eu-west-1b",
+    "eu-west-1c"
+  ],
+  "ami:account=970412728307:filters.image-type.0=machine:filters.name.0=ubuntu-minimal/images/hvm-ssd/ubuntu-bionic-18.04-amd64-minimal-*:filters.state.0=available:owners.0=099720109477:region=eu-west-1": "ami-0e37d3b785ac31598"
+}
