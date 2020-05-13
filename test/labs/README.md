@@ -10,8 +10,8 @@ Generate a keypair and add it to your AWS account
  aws ec2 import-key-pair --key-name "claire lab key" --public-key-material fileb://~/.ssh/claire-lab-key.pub
  ```
 
- Deploy the lab scope passing the name of the key which will be attached to the vulnerable instance
+ Deploy the lab scope
 
  ```
- cdk deploy -c "lab-key=claire lab key"
+ cdk deploy
  ```

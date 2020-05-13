@@ -36,6 +36,7 @@ class LabsStack(core.Stack):
             allow_all_outbound=True,
         )
         security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22))
+        security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80))
 
         return security_group
 
@@ -50,5 +51,5 @@ class LabsStack(core.Stack):
                 owners=[self.CANONICAL_USER_ID]),
             vpc=vpc,
             security_group=security_group,
-            key_name=self.node.try_get_context("lab_key"),
+            key_name=self.node.try_get_context("lab-key"),
         )
