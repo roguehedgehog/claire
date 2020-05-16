@@ -2,8 +2,10 @@ extern crate clap;
 extern crate tokio;
 
 use clap::{App, Arg, SubCommand};
+use payload::deploy;
 
-fn main() -> Result<(), Box<dyn std::error::Error>> {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let app = create_app();
     let args = app.get_matches();
 
@@ -21,14 +23,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             deploy_args
                 .value_of("payload")
                 .expect("The payload must be specified"),
-        );
+        )
+        .await;
     }
 
-    Ok(())
-}
-
-fn deploy(target: &str, payload: &str) -> Result<(), Box<dyn std::error::Error>> {
-    println!("deploy {} to {}", payload, target);
     Ok(())
 }
 
