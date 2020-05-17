@@ -1,4 +1,5 @@
 from aws_cdk import core, aws_ec2 as ec2, aws_kms as kms, aws_rds as rds
+from urllib import request
 
 
 class LabsStack(core.Stack):
@@ -29,14 +30,15 @@ class LabsStack(core.Stack):
         )
 
     def create_security_group(self, vpc: ec2.Vpc) -> ec2.SecurityGroup:
+        my_ip = self.get_my_ip()
         security_group = ec2.SecurityGroup(
             self,
             "SecurityGroup",
             vpc=vpc,
             allow_all_outbound=True,
         )
-        security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(22))
-        security_group.add_ingress_rule(ec2.Peer.any_ipv4(), ec2.Port.tcp(80))
+        security_group.add_ingress_rule(ec2.Peer.ipv4(my_ip), ec2.Port.tcp(22))
+        security_group.add_ingress_rule(ec2.Peer.ipv4(my_ip), ec2.Port.tcp(80))
 
         return security_group
 
@@ -53,3 +55,7 @@ class LabsStack(core.Stack):
             security_group=security_group,
             key_name=self.node.try_get_context("lab-key"),
         )
+
+    def get_my_ip(self) -> str:
+        return "{}/32".format(
+            request.urlopen("https://ipecho.net/plain").read().decode('UTF-8'))
