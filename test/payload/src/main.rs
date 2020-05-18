@@ -16,7 +16,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     if let Some(deploy_args) = args.subcommand_matches("deploy") {
-        return deploy(
+        let resp = deploy(
             deploy_args
                 .value_of("target")
                 .expect("A target must be specified"),
@@ -24,7 +24,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .value_of("payload")
                 .expect("The payload must be specified"),
         )
-        .await;
+        .await?;
+        println!("{}", resp);
     }
 
     Ok(())

