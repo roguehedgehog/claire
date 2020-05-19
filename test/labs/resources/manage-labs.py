@@ -42,8 +42,11 @@ def poll_instances(expected_status: str):
             True,
         )
 
-        print("{} - {}".format(datetime.now().strftime("%H:%M:%S"), details),
-              end="\r")
+        print(
+            "{} - {}".format(datetime.now().strftime("%H:%M:%S"), details),
+            end="\r",
+            flush=True,
+        )
         if all_ready is True:
             print("\n")
             break
