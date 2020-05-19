@@ -8,6 +8,7 @@ class LabsStack(core.Stack):
 
     def __init__(self, scope: core.Construct, id: str, **kwargs) -> None:
         super().__init__(scope, id, **kwargs)
+        core.Tag.add(scope=scope, key="lab", value="vuln-drupal")
 
         vpc = self.create_vpc()
         instance = self.create_ubuntu_instance(
