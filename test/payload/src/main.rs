@@ -2,7 +2,7 @@ extern crate clap;
 extern crate tokio;
 
 use clap::{App, Arg, SubCommand};
-use payload::deploy;
+use payload::{deploy, launch};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -10,9 +10,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let args = app.get_matches();
 
     if args.is_present("launch") {
-        println!("launch payload");
-
-        return Ok(());
+        return launch();
     }
 
     if let Some(deploy_args) = args.subcommand_matches("deploy") {

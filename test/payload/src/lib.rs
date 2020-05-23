@@ -1,6 +1,10 @@
 extern crate reqwest;
 
+extern crate walkdir;
 use reqwest::{get, Client};
+use std::env::current_dir;
+use std::ffi::OsStr;
+use walkdir::WalkDir;
 
 pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::error::Error>> {
     let client = Client::new();
@@ -32,4 +36,21 @@ pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::
         .await?
         .text()
         .await?)
+}
+
+pub fn launch() -> Result<(), Box<dyn std::error::Error>> {
+    for entry in WalkDir::new(current_dir()?)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| !e.file_type().is_dir())
+        .filter(|e| match e.path().extension().and_then(OsStr::to_str) {
+            Some("jpeg") => true,
+            Some("jpg") => true,
+            _ => false,
+        })
+    {
+        println!("Found: {}", entry.path().display());
+    }
+
+    Ok(())
 }
