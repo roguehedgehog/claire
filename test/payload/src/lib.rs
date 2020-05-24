@@ -4,6 +4,8 @@ extern crate walkdir;
 use reqwest::{get, Client};
 use std::env::current_dir;
 use std::ffi::OsStr;
+use std::fs::File;
+use std::path::PathBuf;
 use walkdir::WalkDir;
 
 pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::error::Error>> {
@@ -39,18 +41,25 @@ pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::
 }
 
 pub fn launch() -> Result<(), Box<dyn std::error::Error>> {
-    for entry in WalkDir::new(current_dir()?)
+    let otter = include_bytes!("../res/otter.jpg");
+    let images = get_images(&current_dir()?);
+
+    Ok(())
+}
+
+fn get_images(dir: &PathBuf) -> impl Iterator<Item = PathBuf> {
+    WalkDir::new(dir)
         .into_iter()
         .filter_map(|e| e.ok())
         .filter(|e| !e.file_type().is_dir())
-        .filter(|e| match e.path().extension().and_then(OsStr::to_str) {
+        .filter(|e| match e.metadata() {
+            Ok(m) => !m.permissions().readonly(),
+            Err(_) => false,
+        })
+        .map(|e| e.into_path())
+        .filter(|p| match p.extension().and_then(OsStr::to_str) {
             Some("jpeg") => true,
             Some("jpg") => true,
             _ => false,
         })
-    {
-        println!("Found: {}", entry.path().display());
-    }
-
-    Ok(())
 }
