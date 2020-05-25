@@ -1,4 +1,5 @@
 extern crate clap;
+extern crate log;
 extern crate tokio;
 
 use clap::{App, Arg, SubCommand};
@@ -6,6 +7,7 @@ use payload::{deploy, launch};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    env_logger::init();
     let app = create_app();
     let args = app.get_matches();
 
