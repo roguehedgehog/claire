@@ -2,16 +2,20 @@
 
 from boto3 import client
 from os import environ
-from logging import getLogger, INFO
+from logging import getLogger, INFO, StreamHandler
 from datetime import datetime
-from sys import argv
+from sys import argv, stderr
 from json import dumps
 
+CLAIRE = "CLAIRE"
+
 logger = getLogger()
+logger.setLevel(INFO)
+
 info = lambda msg, investigation_id=None: logger.info(
     msg,
     extra={
-        "referrer": "claire",
+        "referrer": CLAIRE,
         "investigation_id": investigation_id
     },
 )
@@ -24,7 +28,7 @@ def lambda_handler(event, context):
             event["source"],
             event["id"],
         ))
-        return
+        return {"investigation_id": None, "instance_id": None}
 
     info("Event {} {} can be investigated.".format(
         event["source"],
@@ -47,6 +51,13 @@ def create_investigation(instance_id: str, details) -> str:
     s3 = client("s3")
 
     instance = get_instance(ec2, instance_id)
+    if is_under_investigation(instance):
+        info("Instance {} is already under investigation: {}".format(
+            instance_id,
+            get_investigation_id(instance),
+        ))
+        return
+
     investigation_id = "{}_{}".format(datetime.now(), instance["InstanceId"])
 
     put(s3, investigation_id, "alert.json", details)
@@ -57,7 +68,7 @@ def create_investigation(instance_id: str, details) -> str:
         investigation_id,
         instance_id,
         [{
-            "Key": "CLARE",
+            "Key": CLAIRE,
             "Value": "Investigating"
         }, {
             "Key": "InvestigationId",
@@ -77,6 +88,16 @@ def get_instance(ec2: object, instance_id: str) -> object:
     return instance
 
 
+def is_under_investigation(instance: object) -> bool:
+    return CLAIRE in [tag["Key"] for tag in instance["Tags"]]
+
+
+def get_investigation_id(instance: object) -> str:
+    for tag in instance["Tags"]:
+        if tag["Key"] == "InvestigationId":
+            return tag["Value"]
+
+
 def put(s3: object, investigation_id: str, name: str, details: object):
     info("Putting {}".format(name), investigation_id)
     s3.put_object(
@@ -93,17 +114,25 @@ def tag(ec2: object, investigation_id: str, instance_id: str, tags: list):
     info("Tagging complete", investigation_id)
 
 
-if __name__ == "__main__":
-    if len(argv) == 1:
-        print(
+def main():
+    logger.addHandler(StreamHandler(stderr))
+    errors = []
+    if len(argv) < 2:
+        errors.append(
             "You must provide an instance id to create an investigation, {} [instance id]"
             .format(argv[0]))
-        exit(1)
 
     if "INVESTIGATION_BUCKET" not in environ:
-        print(
+        errors.append(
             "INVESTIGATION_BUCKET must be set, export INVESTIGATION_BUCKET=[bucket]"
         )
+
+    if len(errors):
+        print(errors)
         exit(1)
 
     create_investigation(argv[1], {"details": "Manually triggered"})
+
+
+if __name__ == "__main__":
+    main()
