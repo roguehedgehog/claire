@@ -40,3 +40,8 @@ resource "aws_iam_role_policy" "create_investigation" {
   role   = aws_iam_role.create_investigation.id
   policy = data.aws_iam_policy_document.create_investigation.json
 }
+
+resource "aws_iam_role_policy_attachment" "create_investigation_logging" {
+  role       = aws_iam_role.create_investigation.id
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
