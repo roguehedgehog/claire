@@ -6,13 +6,13 @@ from sys import argv, stderr
 CLAIRE = "CLAIRE"
 
 
-def get_investigation_logger(investigation_id: str, is_console_logger: bool):
+def get_logger(investigation_id: str):
     logger = getLogger()
     logger.setLevel(INFO)
-    if is_console_logger:
+    if __name__ == "__main__":
         logger.addHandler(StreamHandler(stderr))
 
-    return lambda msg: logger.info("{} {}".format(
+    return lambda msg, something=None: logger.info("{} {}".format(
         msg,
         dumps({
             "referrer": CLAIRE,
@@ -27,7 +27,7 @@ def main():
         print("Usage {} [investigation_id] [...]".format(argv[0]))
         exit(1)
 
-    logger = get_investigation_logger(argv[1], is_console_logger=True)
+    logger = get_logger(argv[1])
     logger(argv)
 
 

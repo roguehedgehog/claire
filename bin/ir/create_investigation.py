@@ -18,7 +18,7 @@ class InvestigationCreationService:
             event["detail"]["resource"]["resourceType"] == "Instance"
 
     def create_investigation(self, instance_id: str, event: object) -> str:
-        self.logger = get_logger(None, __name__ == "__main__")
+        self.logger = get_logger(None)
         instance = self.__get_instance(instance_id)
         if self.__is_under_investigation(instance):
             self.logger(
@@ -31,7 +31,7 @@ class InvestigationCreationService:
         investigation_id = "{}_{}".format(datetime.now(),
                                           instance["InstanceId"])
 
-        self.logger = get_logger(investigation_id, __name__ == "__main__")
+        self.logger = get_logger(investigation_id)
 
         self.__put(investigation_id, "alert.json", event)
         self.__put(investigation_id, "instance.json", instance)
