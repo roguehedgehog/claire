@@ -85,6 +85,10 @@ impl PurgeService {
             .map(|r| r.id.clone())
             .collect::<Vec<String>>();
 
+        if resources.len() == 0 {
+            return Ok(());
+        }
+
         self.tag_repo
             .delete_tags(resources, vec!["CLAIRE", "InvestigationId"])
             .await?;
@@ -97,16 +101,18 @@ impl PurgeService {
         investigation_bucket: &str,
         coll: &ResourceCollection,
     ) -> Result<(), Box<dyn std::error::Error>> {
+        let resources: Vec<String> = coll
+            .resources
+            .iter()
+            .filter(|r| r.is_object())
+            .map(|r| r.id.clone())
+            .collect();
+
+        if resources.len() == 0 {
+            return Ok(());
+        }
         self.bucket_repo
-            .delete_evidence(
-                investigation_bucket,
-                &coll
-                    .resources
-                    .iter()
-                    .filter(|r| r.is_object())
-                    .map(|r| r.id.clone())
-                    .collect(),
-            )
+            .delete_evidence(investigation_bucket, &resources)
             .await?;
 
         Ok(())
@@ -116,16 +122,17 @@ impl PurgeService {
         &self,
         coll: &ResourceCollection,
     ) -> Result<(), Box<dyn std::error::Error>> {
-        self.instance_repo
-            .delete_snapshots(
-                &coll
-                    .resources
-                    .iter()
-                    .filter(|r| r.is_snapshot())
-                    .map(|r| r.id.clone())
-                    .collect(),
-            )
-            .await?;
+        let snapshots: Vec<String> = coll
+            .resources
+            .iter()
+            .filter(|r| r.is_snapshot())
+            .map(|r| r.id.clone())
+            .collect();
+
+        if snapshots.len() == 0 {
+            return Ok(());
+        }
+        self.instance_repo.delete_snapshots(&snapshots).await?;
 
         Ok(())
     }
