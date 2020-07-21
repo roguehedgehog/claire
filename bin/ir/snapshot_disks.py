@@ -2,6 +2,7 @@
 
 from boto3 import client
 from investigation_logger import get_logger, CLAIRE
+from get_instance import GetInstanceService
 from sys import argv
 from json import dumps
 
@@ -13,7 +14,7 @@ class SnapshotCreationService:
     def snapshot_volumes(self, investigation_id: str, from_console: bool):
         try:
             self.logger = get_logger(investigation_id)
-            instance = self.__get_instance(investigation_id)
+            instance = GetInstanceService().get_instance(investigation_id)
             print(instance)
             volumes = self.__get_volumes(instance)
             for volume in volumes:
@@ -22,8 +23,6 @@ class SnapshotCreationService:
         except ValueError as e:
             self.logger("Unexpected value: {}".format(e))
             return {"result": "FAIL", "investigation_id": investigation_id}
-
-    
 
     def __get_volumes(self, instance: object):
         self.logger("Getting volumes")

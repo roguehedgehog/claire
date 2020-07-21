@@ -68,5 +68,43 @@ module "isolate_instance_role" {
   policy_document = data.aws_iam_policy_document.isolate_instance.json
 }
 
+resource "aws_iam_role" "claire_state_machine_role" {
+  name               = "claire_state_machine_role"
+  assume_role_policy = data.aws_iam_policy_document.claire_state_machine_policy.json
+}
+
+resource "aws_iam_role_policy" "claire_execute_lambda_policy" {
+  name   = "claire_execute_lambda_policy"
+  role   = aws_iam_role.claire_state_machine_role.id
+  policy = data.aws_iam_policy_document.claire_state_machine_execute_lambda.json
+}
+
+data "aws_iam_policy_document" "claire_state_machine_execute_lambda" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "lambda:InvokeFunction",
+      "states:StartExecution",
+    ]
+    resources = ["*"]
+  }
+}
+
+data "aws_iam_policy_document" "claire_state_machine_policy" {
+  statement {
+    actions = [
+      "sts:AssumeRole",
+    ]
+
+    principals {
+      type = "Service"
+      identifiers = [
+        "states.${var.aws_region}.amazonaws.com",
+        "events.amazonaws.com",
+      ]
+    }
+  }
+}
+
 
 
