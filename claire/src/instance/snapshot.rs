@@ -24,8 +24,7 @@ impl SnapshotRepo {
                 dry_run: Some(false),
             };
 
-            let resp = self.client.delete_snapshot(req).await;
-            println!("{:?}", resp);
+            self.client.delete_snapshot(req).await?;
         }
 
         Ok(())
