@@ -21,14 +21,21 @@ def get_logger(investigation_id: str):
     ))
 
 
-def main():
-    basicConfig(stream=stderr, level=INFO)
-    if 1 not in argv:
-        print("Usage {} [investigation_id] [...]".format(argv[0]))
-        exit(1)
+def to_json(o: object):
+    return dumps(o, indent=2, skipkeys=True, default=str)
 
-    logger = get_logger(argv[1])
-    logger(argv)
+
+def log_to_console():
+    basicConfig(stream=stderr, level=INFO)
+
+
+def main():
+    log_to_console()
+    try:
+        logger = get_logger(argv[1])
+        logger(argv)
+    except IndexError:
+        print("Usage {} [investigation_id] [...]".format(argv[0]))
 
 
 if __name__ == "__main__":

@@ -23,21 +23,7 @@ class SnapshotCreationService:
             self.logger("Unexpected value: {}".format(e))
             return {"result": "FAIL", "investigation_id": investigation_id}
 
-    def __get_instance(self, investigation_id):
-        self.logger("Getting instance")
-        resp = self.ec2.describe_instances(
-            Filters=[{
-                'Name': 'tag:InvestigationId',
-                'Values': [investigation_id]
-            }])
-        if resp["Reservations"] == []:
-            raise ValueError(
-                "Cannot find instance for investigation {}".format(
-                    investigation_id))
-        instance = resp["Reservations"][0]["Instances"][0]
-        self.logger("Found instance {}".format(instance["InstanceId"]))
-
-        return instance
+    
 
     def __get_volumes(self, instance: object):
         self.logger("Getting volumes")
