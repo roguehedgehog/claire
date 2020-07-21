@@ -13,7 +13,31 @@ class InvestigationCreationService:
     s3 = client("s3")
     logger = None
 
-    def is_investigatable(self, event: object) -> bool:
+    def create_investigation_from_guardduty(self, event: object) -> object:
+        self.logger = get_logger(None)
+        self.logger("Received event {}".format(event["id"]))
+        if not self.__is_investigatable(event):
+            self.logger("Event {} {} will not be investigated".format(
+                event["source"],
+                event["id"],
+            ))
+            return {"investigation_id": None, "instance_id": None}
+
+        self.logger("Event {} {} can be investigated.".format(
+            event["source"],
+            event["id"],
+        ))
+
+        instance_id = event["detail"]["resource"]["instanceDetails"][
+            "instanceId"]
+        investigation_id = self.create_investigation(instance_id, event)
+
+        return {
+            "investigation_id": investigation_id,
+            "instance_id": instance_id
+        }
+
+    def __is_investigatable(self, event: object) -> bool:
         return "resourceType" in event["detail"]["resource"] and \
             event["detail"]["resource"]["resourceType"] == "Instance"
 
@@ -53,6 +77,9 @@ class InvestigationCreationService:
     def __get_instance(self, instance_id: str) -> object:
         self.logger("Getting instance details for {}".format(instance_id))
         resp = self.ec2.describe_instances(InstanceIds=[instance_id])
+        if resp["Reservations"] == []:
+            raise ValueError("Instance {} cannot be found".format(instance_id))
+
         instance = resp["Reservations"][0]["Instances"][0]
         self.logger("Instance {} found".format(instance_id))
 
@@ -83,23 +110,7 @@ class InvestigationCreationService:
 
 def lambda_handler(event, context):
     creator = InvestigationCreationService()
-    creator.logger("Received event {}".format(event["id"]))
-    if not creator.is_investigatable(event):
-        creator.logger("Event {} {} will not be investigated".format(
-            event["source"],
-            event["id"],
-        ))
-        return {"investigation_id": None, "instance_id": None}
-
-    creator.logger("Event {} {} can be investigated.".format(
-        event["source"],
-        event["id"],
-    ))
-
-    instance_id = event["detail"]["resource"]["instanceDetails"]["instanceId"]
-    investigation_id = creator.create_investigation(instance_id, event)
-
-    return {"investigation_id": investigation_id, "instance_id": instance_id}
+    return creator.create_investigation_from_guardduty(event)
 
 
 def main():
