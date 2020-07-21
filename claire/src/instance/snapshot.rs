@@ -3,13 +3,13 @@ extern crate rusoto_ec2;
 
 use rusoto_core::Region;
 use rusoto_ec2::{DeleteSnapshotRequest, Ec2, Ec2Client};
-pub struct InstanceRepo {
+pub struct SnapshotRepo {
     client: Ec2Client,
 }
 
-impl InstanceRepo {
-    pub fn new() -> InstanceRepo {
-        InstanceRepo {
+impl SnapshotRepo {
+    pub fn new() -> SnapshotRepo {
+        SnapshotRepo {
             client: Ec2Client::new(Region::default()),
         }
     }
