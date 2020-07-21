@@ -18,5 +18,16 @@ resource "aws_lambda_function" "create_investigation" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-  role             = aws_iam_role.create_investigation.arn
+  role             = module.create_investigation_role.arn
+}
+
+resource "aws_lambda_function" "snapshot_disks" {
+  function_name = "claire_snapshot_disks"
+  handler       = "snapshot_disks.lambda_handler"
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  role             = module.snapshot_disks_role.arn
 }

@@ -19,29 +19,35 @@ data "aws_iam_policy_document" "create_investigation" {
   }
 }
 
-data "aws_iam_policy_document" "lambda_execution_policy" {
+module "create_investigation_role" {
+  source = "./modules/iam_lambda"
+
+  role_name       = "create_investigation_role"
+  policy_name     = "create_investigation_policy"
+  policy_document = data.aws_iam_policy_document.create_investigation.json
+}
+
+data "aws_iam_policy_document" "snapshot_disks" {
   statement {
-    effect  = "Allow"
-    actions = ["sts:AssumeRole"]
-    principals {
-      type        = "Service"
-      identifiers = ["lambda.amazonaws.com"]
-    }
+    effect = "Allow"
+    actions = [
+      "ec2:CreateSnapshot",
+      "ec2:CreateTags",
+      "ec2:DescribeInstances",
+      "ec2:DescribeVolumes",
+      "ec2:DescribeSnapshots",
+    ]
+    resources = ["*"]
   }
 }
 
-resource "aws_iam_role" "create_investigation" {
-  name               = "claire_create_investigation"
-  assume_role_policy = data.aws_iam_policy_document.lambda_execution_policy.json
+module "snapshot_disks_role" {
+  source = "./modules/iam_lambda"
+
+  role_name       = "snapshot_disks_role"
+  policy_name     = "snapshot_disks_policy"
+  policy_document = data.aws_iam_policy_document.snapshot_disks.json
 }
 
-resource "aws_iam_role_policy" "create_investigation" {
-  name   = "create_investigation_role_policy"
-  role   = aws_iam_role.create_investigation.id
-  policy = data.aws_iam_policy_document.create_investigation.json
-}
 
-resource "aws_iam_role_policy_attachment" "create_investigation_logging" {
-  role       = aws_iam_role.create_investigation.id
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
-}
+
