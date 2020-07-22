@@ -2,38 +2,27 @@
 
 from boto3 import client
 from investigation_logger import get_logger, CLAIRE
-from get_instance import GetInstanceService
+from get_instance import InstanceService
 from sys import argv
 from json import dumps
 
 
 class SnapshotCreationService:
     ec2 = client("ec2")
-    logger: object
+    instance_service: InstanceService
+    logger: callable
 
-    def snapshot_volumes(self, investigation_id: str, from_console: bool):
+    def snapshot_volumes(self, investigation_id: str):
         try:
             self.logger = get_logger(investigation_id)
-            instance = GetInstanceService().get_instance(investigation_id)
-            print(instance)
-            volumes = self.__get_volumes(instance)
+            instance = self.instance_service.get_instance(investigation_id)
+            volumes = self.instance_service.get_volumes(instance)
             for volume in volumes:
                 self.__snapshot(volume["VolumeId"], investigation_id)
 
         except ValueError as e:
             self.logger("Unexpected value: {}".format(e))
             return {"result": "FAIL", "investigation_id": investigation_id}
-
-    def __get_volumes(self, instance: object):
-        self.logger("Getting volumes")
-        resp = self.ec2.describe_volumes(
-            Filters=[{
-                "Name": "attachment.instance-id",
-                "Values": [instance["InstanceId"]],
-            }])
-        self.logger("Found {} volumes".format(len(resp["Volumes"])))
-
-        return resp["Volumes"]
 
     def __snapshot(self, volume_id: str, investigation_id: str):
         tags = [{
@@ -64,7 +53,7 @@ class SnapshotCreationService:
 
 def lambda_handler(event: object, context: object):
     snapper = SnapshotCreationService()
-    snapper.snapshot_volumes(event["investigation_id"], from_console=False)
+    snapper.snapshot_volumes(event["investigation_id"])
 
 
 def main():
@@ -73,7 +62,7 @@ def main():
         exit(1)
 
     snapper = SnapshotCreationService()
-    snapper.snapshot_volumes(argv[1], from_console=True)
+    snapper.snapshot_volumes(argv[1])
 
 
 if __name__ == "__main__":

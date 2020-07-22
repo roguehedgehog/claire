@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from investigation_logger import get_logger, log_to_console
-from get_instance import GetInstanceService
+from get_instance import InstanceService
 from boto3 import client
 from sys import argv
 from os import environ
@@ -9,11 +9,12 @@ from os import environ
 
 class IsolateInstanceService:
     ec2 = client("ec2")
-    logger: object
+    logger: callable
 
     def isolate(self, investigation_id: str, security_group):
         self.logger = get_logger(investigation_id)
-        instance = GetInstanceService().get_instance(investigation_id)
+        instance = InstanceService(investigation_id).get_instance(
+            investigation_id)
 
         self.logger("Changing security group to {}".format(security_group))
         self.ec2.modify_instance_attribute(
