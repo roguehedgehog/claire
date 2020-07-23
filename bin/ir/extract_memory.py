@@ -139,7 +139,7 @@ class MemoryCaptureService:
         self.logger("Delete volume request complete {}".format(resp))
 
 
-def lambda_prepare_memory_volume(event: object):
+def lambda_prepare_memory_volume(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     event["running_command_instance"] = event["extractor_id"]
     event["running_command_id"] = mcs.prepare_volume(event["extractor_id"])
@@ -148,7 +148,7 @@ def lambda_prepare_memory_volume(event: object):
     return event
 
 
-def lambda_detach_memory_volume(event: object):
+def lambda_detach_memory_volume(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     mcs.detach_volume(event["memory_vol_detach_from"],
                       event["memory_volume_id"])
@@ -157,33 +157,37 @@ def lambda_detach_memory_volume(event: object):
     return event
 
 
-def lambda_is_memory_volume_detached(event: object):
+def lambda_is_memory_volume_detached(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     event["is_ready"] = mcs.is_detached(event["memory_volume_id"])
 
     return event
 
 
-def lambda_attach_memory_volume(event: object):
+def lambda_attach_memory_volume(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     mcs.attach_volume(event["memory_vol_attach_to"], event["memory_volume_id"])
 
     event["is_ready"] = False
 
+    return event
 
-def lambda_is_memory_volume_attached(event: object):
+
+def lambda_is_memory_volume_attached(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     event["is_ready"] = mcs.is_attached(event["memory_volume_id"])
 
     return event
 
 
-def lambda_delete_volume(event: object):
+def lambda_delete_memory_volume(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     mcs.delete_volume(event["memory_volume_id"])
 
+    return event
 
-def lambda_capture_memory(event: object):
+
+def lambda_capture_memory(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
 
     event["running_command_instance"] = event["instance_id"]
@@ -199,7 +203,7 @@ def lambda_capture_memory(event: object):
     return event
 
 
-def lambda_upload_memory(event: object):
+def lambda_upload_memory(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     event["running_command_instance"] = event["extractor_id"]
     event["running_command_id"] = mcs.upload_memory(
@@ -227,46 +231,48 @@ def main():
         event["memory_vol_detach_from"] = event["extractor_id"]
         event["memory_vol_attach_to"] = event["instance_id"]
 
+        context = {}
+
         environ["INVESTIGATION_BUCKET"] = argv[3]
 
     except IndexError:
         print("Usage {} [investigation_id] [volume_id] [investigation_bucket]".
               format(argv[0]))
 
-    event = lambda_prepare_memory_volume(event)
+    event = lambda_prepare_memory_volume(event, context)
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_command_complete(event)
+        event = lambda_is_command_complete(event, context)
 
-    event = move_volume(event)
-    event = lambda_capture_memory(event)
+    event = move_volume(event, context)
+    event = lambda_capture_memory(event, context)
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_command_complete(event)
+        event = lambda_is_command_complete(event, context)
 
-    event = move_volume(event)
-    event = lambda_upload_memory(event)
+    event = move_volume(event, context)
+    event = lambda_upload_memory(event, context)
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_command_complete(event)
+        event = lambda_is_command_complete(event, context)
 
-    move_volume(event)
+    move_volume(event, context)
 
 
-def move_volume(event):
-    event = lambda_detach_memory_volume(event)
+def move_volume(event, context):
+    event = lambda_detach_memory_volume(event, context)
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_memory_volume_detached(event)
+        event = lambda_is_memory_volume_detached(event, context)
 
     if event["memory_vol_attach_to"] is None:
-        lambda_delete_volume(event)
+        lambda_delete_memory_volume(event, context)
         return
 
-    lambda_attach_memory_volume(event)
+    event = lambda_attach_memory_volume(event, context)
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_memory_volume_attached(event)
+        event = lambda_is_memory_volume_attached(event, context)
 
     return event
 

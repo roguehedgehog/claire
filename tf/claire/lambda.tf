@@ -24,7 +24,7 @@ resource "aws_lambda_function" "create_investigation" {
 
 resource "aws_lambda_function" "snapshot_disks" {
   function_name = "claire_snapshot_disks"
-  handler       = "snapshot_disks.lambda_handler"
+  handler       = "snapshot_disks.lambda_snapshot_handler"
   role          = module.snapshot_disks_role.arn
 
   publish          = true
@@ -42,6 +42,156 @@ resource "aws_lambda_function" "isolate_instance" {
   environment {
     variables = {
       LOCKED_DOWN_SECURITY_GROUP = aws_security_group.locked_down.id
+    }
+  }
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "create_evidence_extractor" {
+  function_name = "claire_create_evidence_extractor"
+  handler       = "create_evidence_extractor.lambda_handler"
+  role          = module.create_instance_role.arn
+
+  environment {
+    variables = {
+      IAM_PROFILE = aws_iam_instance_profile.claire_ec2_evidence_extractor_profile.arn
+    }
+  }
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "poll_evidence_extractor" {
+  function_name = "claire_poll_evidence_extractor"
+  handler       = "create_evidence_extractor.lambda_is_extractor_ready"
+  role          = module.poll_instance_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "terminate_evidence_extractor" {
+  function_name = "claire_terminate_evidence_extractor"
+  handler       = "create_evidence_extractor.lambda_terminate_extractor"
+  role          = module.terminate_instance_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "prepare_memory_volume" {
+  function_name = "claire_prepare_memory_volume"
+  handler       = "extract_memory.lambda_prepare_memory_volume"
+  role          = module.run_ssm_command_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "detach_memory_volume" {
+  function_name = "claire_detach_memory_volume"
+  handler       = "extract_memory.lambda_detach_memory_volume"
+  role          = module.manage_volume_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "attach_memory_volume" {
+  function_name = "claire_attach_memory_volume"
+  handler       = "extract_memory.lambda_attach_memory_volume"
+  role          = module.manage_volume_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "delete_memory_volume" {
+  function_name = "claire_delete_memory_volume"
+  handler       = "extract_memory.lambda_delete_memory_volume"
+  role          = module.manage_volume_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "is_memory_volume_detached" {
+  function_name = "claire_is_memory_volume_detached"
+  handler       = "extract_memory.lambda_is_memory_volume_detached"
+  role          = module.query_volume_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "is_memory_volume_attached" {
+  function_name = "claire_is_memory_volume_attached"
+  handler       = "extract_memory.lambda_is_memory_volume_attached"
+  role          = module.query_volume_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "capture_memory" {
+  function_name = "claire_capture_memory"
+  handler       = "extract_memory.lambda_capture_memory"
+  role          = module.run_ssm_command_role.arn
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "upload_memory" {
+  function_name = "claire_upload_memory"
+  handler       = "extract_memory.lambda_upload_memory"
+  role          = module.run_ssm_command_role.arn
+
+  environment {
+    variables = {
+      INVESTIGATION_BUCKET = aws_s3_bucket.investigation_bucket.bucket
+    }
+  }
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
+resource "aws_lambda_function" "is_command_complete" {
+  function_name = "claire_is_command_complete"
+  handler       = "run_command.lambda_is_command_complete"
+  role          = module.query_ssm_command_role.arn
+
+  environment {
+    variables = {
+      INVESTIGATION_BUCKET = aws_s3_bucket.investigation_bucket.bucket
     }
   }
 

@@ -3,6 +3,7 @@
 from boto3 import client
 from investigation_logger import get_logger, to_json, log_to_console
 from get_instance import InstanceService
+from terminate_instance import terminate_instance
 from sys import argv
 from os import environ
 from pathlib import Path
@@ -54,7 +55,7 @@ def create_extractor_instance(investagtion_id: str):
             }]
         }],
         IamInstanceProfile={
-            "Arn": "arn:aws:iam::970412728307:instance-profile/EC2SSM",
+            "Arn": environ["IAM_PROFILE"],
         })["Instances"][0]
 
     instance_service.logger("extractor instance created")
@@ -71,7 +72,7 @@ def poll_extractor(investigation_id: str, instance_id: str):
     return resp["Reservations"][0]["Instances"][0]
 
 
-def lambda_create_extractor(event: object):
+def lambda_handler(event: object, context):
     instance = create_extractor_instance(event["investigation_id"])
     return {
         **event,
@@ -84,7 +85,7 @@ def lambda_create_extractor(event: object):
     }
 
 
-def lambda_is_extractor_ready(event: object):
+def lambda_is_extractor_ready(event: object, context):
     instance = poll_extractor(
         event["investigation_id"],
         event["extractor_id"],
@@ -100,6 +101,12 @@ def lambda_is_extractor_ready(event: object):
     return event
 
 
+def lambda_terminate_extractor(event: object, context):
+    terminate_instance(event[0]["investigation_id"], event[0]["extractor_id"])
+
+    return event
+
+
 def main():
 
     log_to_console()
@@ -110,14 +117,17 @@ def main():
             "instance_id":
             InstanceService(argv[1]).get_instance(argv[1])["InstanceId"]
         }
+        environ["IAM_PROFILE"] = argv[2]
+        environ["SECURITY_GROUP_ID"] = argv[3]
     except IndexError:
-        print("Usage {} [investigation_id] [security_group_id]".format(
-            argv[0]))
+        print(
+            "Usage {} [investigation_id] [iam_profile_arn] [security_group_id]"
+            .format(argv[0]))
 
-    event = lambda_create_extractor(event)
+    event = lambda_handler(event, {})
     while event["is_ready"] is False:
         sleep(5)
-        event = lambda_is_extractor_ready(event)
+        event = lambda_is_extractor_ready(event, {})
 
     print(to_json(event))
 

@@ -19,10 +19,11 @@ class SnapshotCreationService:
 
     def snapshot_volumes(self, investigation_id: str):
         instance = self.instance_service.get_instance(investigation_id)
-        return map(
-            lambda v: self.__snapshot(v["VolumeId"], investigation_id),
-            self.instance_service.get_volumes(instance),
-        )
+        return list(
+            map(
+                lambda v: self.__snapshot(v["VolumeId"], investigation_id),
+                self.instance_service.get_volumes(instance),
+            ))
 
     def is_snapshot_complete(self, snapshot_ids: str):
         self.logger("Getting snapshot status for {}".format(snapshot_ids))

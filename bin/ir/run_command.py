@@ -18,7 +18,7 @@ def get_command_status(investigation_id: str, instance_id: str,
     return resp["Status"]
 
 
-def lambda_is_command_complete(event: object):
+def lambda_is_command_complete(event: object, context: object):
     event["command_status"] = get_command_status(
         event["investigation_id"],
         event["running_command_instance"],
