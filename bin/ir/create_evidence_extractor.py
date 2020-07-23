@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 from boto3 import client
-from investigation_logger import get_logger, to_json
+from investigation_logger import get_logger, to_json, log_to_console
 from get_instance import InstanceService
 from sys import argv
 from os import environ
@@ -11,31 +11,31 @@ from time import sleep
 UBUNTU_2004_64_HVM = "ami-0127d62154efde733"
 
 
-def create_extractor_instance(investagtion_id: str, security_group: str):
+def create_extractor_instance(investagtion_id: str):
     ec2 = client("ec2")
     instance_service = InstanceService(investagtion_id)
     instance = instance_service.get_instance(investagtion_id)
     volumes = instance_service.get_volumes(instance)
     memory_size = instance_service.get_memory_size(instance)
-    return ec2.run_instances(
+    instance_service.logger("Creating extractor instance")
+    extractor = ec2.run_instances(
         ImageId=UBUNTU_2004_64_HVM,
         InstanceType="t2.small",
         MinCount=1,
         MaxCount=1,
         InstanceInitiatedShutdownBehavior="terminate",
         SubnetId=instance["NetworkInterfaces"][0]["SubnetId"],
-        SecurityGroupIds=[security_group],
         KeyName="vuln-app-key",
         BlockDeviceMappings=[{
-            "DeviceName": "/dev/sdm",
+            "DeviceName": "/dev/sda1",
             "Ebs": {
                 "DeleteOnTermination": True,
                 "VolumeSize": 8 + max(volumes, key=lambda v: v["Size"])["Size"]
             }
         }, {
-            "DeviceName": "/dev/sda2",
+            "DeviceName": "/dev/sdm",
             "Ebs": {
-                "DeleteOnTermination": False,
+                "DeleteOnTermination": True,
                 "VolumeSize": round((memory_size / 1000) + 1)
             }
         }],
@@ -53,10 +53,13 @@ def create_extractor_instance(investagtion_id: str, security_group: str):
                 "Value": investagtion_id,
             }]
         }],
-        UserData=open(
-            Path(__file__).parent /
-            "./prepare_memory_capture_volume.sh").read(),
-    )["Instances"][0]
+        IamInstanceProfile={
+            "Arn": "arn:aws:iam::970412728307:instance-profile/EC2SSM",
+        })["Instances"][0]
+
+    instance_service.logger("extractor instance created")
+
+    return extractor
 
 
 def poll_extractor(investigation_id: str, instance_id: str):
@@ -68,40 +71,55 @@ def poll_extractor(investigation_id: str, instance_id: str):
     return resp["Reservations"][0]["Instances"][0]
 
 
-def lambda_create_extractor_handler(event: object):
-    instance = create_extractor_instance(
-        event["investigation_id"],
-        environ["SECURITY_GROUP"],
-    )
+def lambda_create_extractor(event: object):
+    instance = create_extractor_instance(event["investigation_id"])
     return {
-        "ready": False,
-        "investigation_id": event["investigation_id"],
-        "instance": instance,
+        **event,
+        **{
+            "is_ready": False,
+            "extractor_id": instance["InstanceId"],
+            "memory_vol_detach_from": instance["InstanceId"],
+            "memory_vol_attach_to": event["instance_id"],
+        }
     }
 
 
-def lambda_extractor_ready_handler(event: object):
-    event["instance"] = poll_extractor(
+def lambda_is_extractor_ready(event: object):
+    instance = poll_extractor(
         event["investigation_id"],
-        event["instance"]["InstanceId"],
+        event["extractor_id"],
     )
-    event["ready"] = event["instance"]['State']["Name"] == "running"
+    event["is_ready"] = instance['State']["Name"] == "running"
+    if event["is_ready"]:
+        event["memory_volume_id"] = [
+            device["Ebs"]["VolumeId"]
+            for device in instance["BlockDeviceMappings"]
+            if device["DeviceName"] == "/dev/sdm"
+        ][0]
+
     return event
 
 
 def main():
-    try:
-        instance = create_extractor_instance(argv[1], argv[2])
-        print(to_json(instance))
-        while instance['State']["Name"] != "running":
-            sleep(1)
-            print(".", end="", flush=True)
-            instance = poll_extractor(argv[1], instance["InstanceId"])
 
-        print("running")
+    log_to_console()
+    try:
+        event = {
+            "investigation_id":
+            argv[1],
+            "instance_id":
+            InstanceService(argv[1]).get_instance(argv[1])["InstanceId"]
+        }
     except IndexError:
         print("Usage {} [investigation_id] [security_group_id]".format(
             argv[0]))
+
+    event = lambda_create_extractor(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_extractor_ready(event)
+
+    print(to_json(event))
 
 
 if __name__ == "__main__":

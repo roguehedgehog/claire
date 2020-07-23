@@ -2,6 +2,7 @@
 
 from boto3 import client
 from investigation_logger import get_logger, to_json, log_to_console
+from run_command import lambda_is_command_complete
 from get_instance import InstanceService
 from sys import argv
 from os import environ
@@ -18,7 +19,33 @@ class MemoryCaptureService:
         self.instance_service = InstanceService(investigation_id)
         self.logger = self.instance_service.logger
 
-    def detech_volume(self, instance_id: str, volume_id: str):
+    def prepare_volume(self, extractor_id: str):
+        ssm = client("ssm")
+        self.logger(
+            "Preparing memory capture volume on {}".format(extractor_id))
+        resp = ssm.send_command(
+            DocumentName="AWS-RunShellScript",
+            InstanceIds=[extractor_id],
+            Comment="CLAIRE Prepare Volume for Memory Capture of {}".format(
+                extractor_id),
+            TimeoutSeconds=3600,
+            Parameters={
+                "commands": [
+                    "mkdir -p /mnt/mem",
+                    "mkfs -t ext4 /dev/xvdm",
+                    "mount /dev/xvdm /mnt/mem",
+                    "mkdir /mnt/mem/memory",
+                    "cd /mnt/mem/memory",
+                    "wget https://github.com/microsoft/avml/releases/download/v0.2.0/avml",
+                    "chmod +x avml",
+                    "cd /",
+                    "umount /mnt/mem",
+                ]
+            })
+
+        return resp["Command"]["CommandId"]
+
+    def detach_volume(self, instance_id: str, volume_id: str):
         self.logger("Detaching volume {} from {}".format(
             volume_id,
             instance_id,
@@ -78,17 +105,6 @@ class MemoryCaptureService:
 
         return resp["Command"]["CommandId"]
 
-    def get_command_status(self, instance_id: str, command_id: str):
-        ssm = client("ssm")
-        self.logger("Checking command {} status".format(command_id))
-        resp = ssm.get_command_invocation(
-            InstanceId=instance_id,
-            CommandId=command_id,
-        )
-        self.logger("Command {} status returned {}".format(command_id, resp))
-
-        return resp["Status"]
-
     def upload_memory(self, investigation_id: str, instance_id: str,
                       bucket: str):
         ssm = client("ssm")
@@ -102,7 +118,7 @@ class MemoryCaptureService:
             Parameters={
                 "commands": [
                     "sudo apt update",
-                    "sudo apt install awscli",
+                    "sudo apt install -y awscli",
                     "sudo mkdir -p /mnt/mem",
                     "sudo mount -o ro /dev/xvdm /mnt/mem",
                     "cd /mnt/mem/memory",
@@ -123,86 +139,136 @@ class MemoryCaptureService:
         self.logger("Delete volume request complete {}".format(resp))
 
 
+def lambda_prepare_memory_volume(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    event["running_command_instance"] = event["extractor_id"]
+    event["running_command_id"] = mcs.prepare_volume(event["extractor_id"])
+    event["is_ready"] = False
+
+    return event
+
+
+def lambda_detach_memory_volume(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    mcs.detach_volume(event["memory_vol_detach_from"],
+                      event["memory_volume_id"])
+
+    event["is_ready"] = False
+    return event
+
+
+def lambda_is_memory_volume_detached(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    event["is_ready"] = mcs.is_detached(event["memory_volume_id"])
+
+    return event
+
+
+def lambda_attach_memory_volume(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    mcs.attach_volume(event["memory_vol_attach_to"], event["memory_volume_id"])
+
+    event["is_ready"] = False
+
+
+def lambda_is_memory_volume_attached(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    event["is_ready"] = mcs.is_attached(event["memory_volume_id"])
+
+    return event
+
+
+def lambda_delete_volume(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    mcs.delete_volume(event["memory_volume_id"])
+
+
+def lambda_capture_memory(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+
+    event["running_command_instance"] = event["instance_id"]
+    event["running_command_id"] = mcs.capture_memory(
+        event["instance_id"],
+        event["memory_volume_id"],
+    )
+
+    event["memory_vol_detach_from"] = event["instance_id"]
+    event["memory_vol_attach_to"] = event["extractor_id"]
+    event["is_ready"] = False
+
+    return event
+
+
+def lambda_upload_memory(event: object):
+    mcs = MemoryCaptureService(event["investigation_id"])
+    event["running_command_instance"] = event["extractor_id"]
+    event["running_command_id"] = mcs.upload_memory(
+        event["investigation_id"],
+        event["extractor_id"],
+        environ["INVESTIGATION_BUCKET"],
+    )
+    event["memory_vol_detach_from"] = event["extractor_id"]
+    event["memory_vol_attach_to"] = None
+    event["is_ready"] = False
+
+    return event
+
+
 def main():
+    log_to_console()
     try:
-        investigation_id = argv[1]
-        volume_id = argv[2]
-
-        log_to_console()
-        mcs = MemoryCaptureService(argv[1])
         ins = InstanceService(argv[1])
+        event = {
+            "investigation_id": argv[1],
+            "memory_volume_id": argv[2],
+            "instance_id": ins.get_instance(argv[1])["InstanceId"],
+            "extractor_id": ins.get_instance(argv[1], "Worker")["InstanceId"],
+        }
+        event["memory_vol_detach_from"] = event["extractor_id"]
+        event["memory_vol_attach_to"] = event["instance_id"]
 
-        instance_id = ins.get_instance(investigation_id)["InstanceId"]
-        extractor_id = ins.get_instance(
-            investigation_id,
-            "Worker",
-        )["InstanceId"]
-
-        print(to_json(mcs.detech_volume(extractor_id, volume_id)))
-        while mcs.is_detached(volume_id) == False:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        print("deteched, attaching to suspicious instance", flush=True, end="")
-
-        mcs.attach_volume(instance_id, volume_id)
-        while mcs.is_attached(volume_id) == False:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        print("attached")
-
-        command_id = mcs.capture_memory(instance_id, volume_id)
-        sleep(1)
-        while mcs.get_command_status(instance_id, command_id) in [
-                "Pending", "Delayed", "InProgress"
-        ]:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        if "Success" != mcs.get_command_status(instance_id, command_id):
-            raise Exception("Memory capture failed")
-
-        print("capture complete")
-
-        mcs.detech_volume(instance_id, volume_id)
-        while mcs.is_detached(volume_id) == False:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        print("deteched, attaching to extractor instance", flush=True, end="")
-        mcs.attach_volume(extractor_id, volume_id)
-        while mcs.is_attached(volume_id) == False:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        command_id = mcs.upload_memory(
-            investigation_id,
-            extractor_id,
-            "wild-pumpkin-investigations",
-        )
-
-        sleep(1)
-        while mcs.get_command_status(extractor_id, command_id) in [
-                "Pending", "Delayed", "InProgress"
-        ]:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        if "Success" != mcs.get_command_status(extractor_id, command_id):
-            raise Exception("Memory upload failed")
-
-        print("upload complete, deleting volume")
-
-        mcs.detech_volume(extractor_id, volume_id)
-        while mcs.is_detached(volume_id) == False:
-            sleep(1)
-            print(".", flush=True, end="")
-
-        mcs.delete_volume(volume_id)
+        environ["INVESTIGATION_BUCKET"] = argv[3]
 
     except IndexError:
-        print("Usage {} [investigation_id] [volume_id]".format(argv[0]))
+        print("Usage {} [investigation_id] [volume_id] [investigation_bucket]".
+              format(argv[0]))
+
+    event = lambda_prepare_memory_volume(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_command_complete(event)
+
+    event = move_volume(event)
+    event = lambda_capture_memory(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_command_complete(event)
+
+    event = move_volume(event)
+    event = lambda_upload_memory(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_command_complete(event)
+
+    move_volume(event)
+
+
+def move_volume(event):
+    event = lambda_detach_memory_volume(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_memory_volume_detached(event)
+
+    if event["memory_vol_attach_to"] is None:
+        lambda_delete_volume(event)
+        return
+
+    lambda_attach_memory_volume(event)
+    while event["is_ready"] is False:
+        sleep(5)
+        event = lambda_is_memory_volume_attached(event)
+
+    return event
 
 
 if __name__ == "__main__":

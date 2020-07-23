@@ -3,6 +3,7 @@
 from boto3 import client
 from investigation_logger import get_logger, CLAIRE
 from get_instance import InstanceService
+from functools import reduce
 from sys import argv
 from json import dumps
 
@@ -12,17 +13,25 @@ class SnapshotCreationService:
     instance_service: InstanceService
     logger: callable
 
-    def snapshot_volumes(self, investigation_id: str):
-        try:
-            self.logger = get_logger(investigation_id)
-            instance = self.instance_service.get_instance(investigation_id)
-            volumes = self.instance_service.get_volumes(instance)
-            for volume in volumes:
-                self.__snapshot(volume["VolumeId"], investigation_id)
+    def __init__(self, investigation_id: str):
+        self.instance_service = InstanceService(investigation_id)
+        self.logger = self.instance_service.logger
 
-        except ValueError as e:
-            self.logger("Unexpected value: {}".format(e))
-            return {"result": "FAIL", "investigation_id": investigation_id}
+    def snapshot_volumes(self, investigation_id: str):
+        instance = self.instance_service.get_instance(investigation_id)
+        return map(
+            lambda v: self.__snapshot(v["VolumeId"], investigation_id),
+            self.instance_service.get_volumes(instance),
+        )
+
+    def is_snapshot_complete(self, snapshot_ids: str):
+        self.logger("Getting snapshot status for {}".format(snapshot_ids))
+        return reduce(
+            lambda is_ready, s: is_ready
+            if s["State"] == "completed" else False,
+            self.ec2.describe_snapshots(SnapshotIds=snapshot_ids)["Snapshots"],
+            True,
+        )
 
     def __snapshot(self, volume_id: str, investigation_id: str):
         tags = [{
@@ -50,10 +59,22 @@ class SnapshotCreationService:
         self.logger("Snapshot of volume {} complete {}".format(
             volume_id, resp))
 
+        return resp["SnapshotId"]
 
-def lambda_handler(event: object, context: object):
-    snapper = SnapshotCreationService()
-    snapper.snapshot_volumes(event["investigation_id"])
+
+def lambda_snapshot_handler(event: object, context: object):
+    snapper = SnapshotCreationService(event["investigation_id"])
+    event["snapshot_ids"] = snapper.snapshot_volumes(event["investigation_id"])
+    event["ready"] = False
+
+    return event
+
+
+def lambda_snapshot_ready_handler(event, context):
+    snapper = SnapshotCreationService(event["investigation_id"])
+    event["ready"] = snapper.is_snapshot_complete(event["snapshot_ids"])
+
+    return event
 
 
 def main():
@@ -61,7 +82,7 @@ def main():
         print("Usage: {} [investigation_id]".format(argv[0]))
         exit(1)
 
-    snapper = SnapshotCreationService()
+    snapper = SnapshotCreationService(argv[1])
     snapper.snapshot_volumes(argv[1])
 
 

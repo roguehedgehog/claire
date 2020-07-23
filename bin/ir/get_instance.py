@@ -18,6 +18,10 @@ class InstanceService:
         self.logger("Getting instance")
         resp = self.ec2.describe_instances(Filters=[
             {
+                "Name": "instance-state-name",
+                "Values": ["running", "stopped"],
+            },
+            {
                 "Name": "tag:{}".format(CLAIRE),
                 "Values": [action],
             },
