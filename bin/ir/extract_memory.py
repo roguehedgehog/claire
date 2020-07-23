@@ -96,7 +96,7 @@ class MemoryCaptureService:
         resp = ssm.send_command(
             DocumentName="AWS-RunShellScript",
             InstanceIds=[instance_id],
-            Comment="Uploading memory for investigation".format(
+            Comment="Uploading memory for investigation {}".format(
                 investigation_id),
             TimeoutSeconds=3600,
             Parameters={
