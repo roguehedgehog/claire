@@ -1,0 +1,60 @@
+{
+    "StartAt": "DetachVolume",
+    "States": {
+        "DetachVolume": {
+            "Type": "Task",
+            "Resource": "${detach_memory_volume}",
+            "Next": "WaitDetachVolume"
+        },
+        "WaitDetachVolume": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "PollDetachVolume"
+        },
+        "PollDetachVolume": {
+            "Type": "Task",
+            "Resource": "${is_memory_volume_detached}",
+            "Next": "IsDetachVolume"
+        },
+        "IsDetachVolume": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.is_ready",
+                    "BooleanEquals": true,
+                    "Next": "AttachVolume"
+                }
+            ],
+            "Default": "WaitDetachVolume"
+        },
+        "AttachVolume": {
+            "Type": "Task",
+            "Resource": "${attach_memory_volume}",
+            "Next": "WaitAttachVolume"
+        },
+        "WaitAttachVolume": {
+            "Type": "Wait",
+            "Seconds": 10,
+            "Next": "PollAttachVolume"
+        },
+        "PollAttachVolume": {
+            "Type": "Task",
+            "Resource": "${is_memory_volume_attached}",
+            "Next": "IsAttachVolume"
+        },
+        "IsAttachVolume": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.is_ready",
+                    "BooleanEquals": true,
+                    "Next": "Success"
+                }
+            ],
+            "Default": "WaitAttachVolume"
+        },
+        "Success": {
+            "Type": "Succeed"
+        }
+    }
+}

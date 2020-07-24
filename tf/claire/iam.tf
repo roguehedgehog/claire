@@ -246,6 +246,15 @@ data "aws_iam_policy_document" "claire_state_machine_policy" {
   }
 }
 
+data "aws_iam_policy" "CloudWatchEventsFullAccess" {
+  arn = "arn:aws:iam::aws:policy/CloudWatchEventsFullAccess"
+}
+
+resource "aws_iam_role_policy_attachment" "claire_state_machine_role_cloud_watch" {
+  role       = aws_iam_role.claire_state_machine_role.id
+  policy_arn = data.aws_iam_policy.CloudWatchEventsFullAccess.arn
+}
+
 resource "aws_iam_instance_profile" "claire_ec2_evidence_extractor_profile" {
   name = "claire_ec2_evidence_extractor_profile"
   role = aws_iam_role.claire_ec2_evidence_extractor_role.name

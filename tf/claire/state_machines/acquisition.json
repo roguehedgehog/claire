@@ -1,0 +1,240 @@
+{
+    "StartAt": "CreateInvestigation",
+    "States": {
+        "CreateInvestigation": {
+            "Type": "Task",
+            "Resource": "${create_investigation}",
+            "Next": "ProceedWithInvestigation"
+        },
+        "ProceedWithInvestigation": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.investigation_id",
+                    "StringGreaterThan": "",
+                    "Next": "IsolateAndGatherEvidence"
+                }
+            ],
+            "Default": "InvestigationAlreadyInProgress"
+        },
+        "IsolateAndGatherEvidence": {
+            "Type": "Parallel",
+            "Branches": [
+                {
+                    "StartAt": "CreateExtractor",
+                    "States": {
+                        "CreateExtractor": {
+                            "Type": "Task",
+                            "Resource": "${create_evidence_extractor}",
+                            "Next": "WaitForExtractorBoot"
+                        },
+                        "WaitForExtractorBoot": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollExtractor"
+                        },
+                        "PollExtractor": {
+                            "Type": "Task",
+                            "Resource": "${poll_evidence_extractor}",
+                            "Next": "IsExtractorReady"
+                        },
+                        "IsExtractorReady": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "PrepareMemoryVolume"
+                                }
+                            ],
+                            "Default": "WaitForExtractorBoot"
+                        },
+                        "PrepareMemoryVolume": {
+                            "Type": "Task",
+                            "Resource": "${prepare_memory_volume}",
+                            "Next": "WaitPrepareMemoryVolume",
+                            "Retry": [
+                                {
+                                    "ErrorEquals": [
+                                        "States.ALL"
+                                    ],
+                                    "IntervalSeconds": 30,
+                                    "MaxAttempts": 3
+                                }
+                            ]
+                        },
+                        "WaitPrepareMemoryVolume": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollPrepareMemoryVolume"
+                        },
+                        "PollPrepareMemoryVolume": {
+                            "Type": "Task",
+                            "Resource": "${is_command_complete}",
+                            "Next": "IsPrepareMemoryVolume"
+                        },
+                        "IsPrepareMemoryVolume": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "MoveMemoryVolumeToInstance"
+                                }
+                            ],
+                            "Default": "WaitPrepareMemoryVolume"
+                        },
+                        "MoveMemoryVolumeToInstance": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "${move_memory_volume}",
+                                "Input": {
+                                    "investigation_id.$": "$.investigation_id",
+                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
+                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
+                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+                                }
+                            },
+                            "Next": "CaptureMemory",
+                            "ResultPath": null
+                        },
+                        "CaptureMemory": {
+                            "Type": "Task",
+                            "Resource": "${capture_memory}",
+                            "Next": "WaitCaptureMemory"
+                        },
+                        "WaitCaptureMemory": {
+                            "Type": "Wait",
+                            "Seconds": 30,
+                            "Next": "PollCaptureMemory"
+                        },
+                        "PollCaptureMemory": {
+                            "Type": "Task",
+                            "Resource": "${is_command_complete}",
+                            "Next": "IsCaptureMemory"
+                        },
+                        "IsCaptureMemory": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "MoveMemoryVolumeToExtractor"
+                                }
+                            ],
+                            "Default": "WaitCaptureMemory"
+                        },
+                        "MoveMemoryVolumeToExtractor": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "${move_memory_volume}",
+                                "Input": {
+                                    "investigation_id.$": "$.investigation_id",
+                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
+                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
+                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+                                }
+                            },
+                            "Next": "UploadMemoryCapture",
+                            "ResultPath": null
+                        },
+                        "UploadMemoryCapture": {
+                            "Type": "Task",
+                            "Resource": "${upload_memory}",
+                            "Next": "WaitUploadMemoryCapture"
+                        },
+                        "WaitUploadMemoryCapture": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollUploadMemoryCapture"
+                        },
+                        "PollUploadMemoryCapture": {
+                            "Type": "Task",
+                            "Resource": "${is_command_complete}",
+                            "Next": "IsUploadMemoryCapture"
+                        },
+                        "IsUploadMemoryCapture": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "DetachCompleteCapture"
+                                }
+                            ],
+                            "Default": "WaitUploadMemoryCapture"
+                        },
+                        "DetachCompleteCapture": {
+                            "Type": "Task",
+                            "Resource": "${detach_memory_volume}",
+                            "Next": "WaitDetachCompleteCapture"
+                        },
+                        "WaitDetachCompleteCapture": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollDetachCompleteCapture"
+                        },
+                        "PollDetachCompleteCapture": {
+                            "Type": "Task",
+                            "Resource": "${is_memory_volume_detached}",
+                            "Next": "IsDetachCompleteCapture"
+                        },
+                        "IsDetachCompleteCapture": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "DeleteMemoryVolume"
+                                }
+                            ],
+                            "Default": "WaitDetachCompleteCapture"
+                        },
+                        "DeleteMemoryVolume": {
+                            "Type": "Task",
+                            "Resource": "${delete_memory_volume}",
+                            "End": true
+                        }
+                    }
+                },
+                {
+                    "StartAt": "IsolateInstance",
+                    "States": {
+                        "IsolateInstance": {
+                            "Type": "Task",
+                            "Resource": "${isolate_instance}",
+                            "End": true
+                        }
+                    }
+                },
+                {
+                    "StartAt": "SnapshotDisks",
+                    "States": {
+                        "SnapshotDisks": {
+                            "Type": "Task",
+                            "Resource": "${snapshot_disks}",
+                            "End": true
+                        }
+                    }
+                }
+            ],
+            "Next": "TerminateExtractorInstance"
+        },
+        "TerminateExtractorInstance": {
+            "Type": "Task",
+            "Resource": "${terminate_evidence_extractor}",
+            "Next": "Success"
+        },
+        "Success": {
+            "Type": "Succeed"
+        },
+        "InvestigationAlreadyInProgress": {
+            "Type": "Fail",
+            "Cause": "This instance is already being investigated"
+        }
+    }
+}
