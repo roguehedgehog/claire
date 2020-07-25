@@ -163,41 +163,26 @@
                                 {
                                     "Variable": "$.is_ready",
                                     "BooleanEquals": true,
-                                    "Next": "DetachCompleteCapture"
+                                    "Next": "DetachAndDeleteVolume"
                                 }
                             ],
                             "Default": "WaitUploadMemoryCapture"
                         },
-                        "DetachCompleteCapture": {
+                        "DetachAndDeleteVolume": {
                             "Type": "Task",
-                            "Resource": "${detach_memory_volume}",
-                            "Next": "WaitDetachCompleteCapture"
-                        },
-                        "WaitDetachCompleteCapture": {
-                            "Type": "Wait",
-                            "Seconds": 10,
-                            "Next": "PollDetachCompleteCapture"
-                        },
-                        "PollDetachCompleteCapture": {
-                            "Type": "Task",
-                            "Resource": "${is_memory_volume_detached}",
-                            "Next": "IsDetachCompleteCapture"
-                        },
-                        "IsDetachCompleteCapture": {
-                            "Type": "Choice",
-                            "Choices": [
-                                {
-                                    "Variable": "$.is_ready",
-                                    "BooleanEquals": true,
-                                    "Next": "DeleteMemoryVolume"
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "${move_memory_volume}",
+                                "Input": {
+                                    "investigation_id.$": "$.investigation_id",
+                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
+                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
+                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
-                            ],
-                            "Default": "WaitDetachCompleteCapture"
-                        },
-                        "DeleteMemoryVolume": {
-                            "Type": "Task",
-                            "Resource": "${delete_memory_volume}",
-                            "End": true
+                            },
+                            "End": true,
+                            "ResultPath": null
                         }
                     }
                 },

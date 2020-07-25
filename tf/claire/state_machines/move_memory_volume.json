@@ -22,10 +22,21 @@
                 {
                     "Variable": "$.is_ready",
                     "BooleanEquals": true,
-                    "Next": "AttachVolume"
+                    "Next": "AttachOrDestroy"
                 }
             ],
             "Default": "WaitDetachVolume"
+        },
+        "AttachOrDestroy": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.memory_vol_attach_to",
+                    "StringGreaterThan": "",
+                    "Next": "AttachVolume"
+                }
+            ],
+            "Default": "DeleteMemoryVolume"
         },
         "AttachVolume": {
             "Type": "Task",
@@ -52,6 +63,11 @@
                 }
             ],
             "Default": "WaitAttachVolume"
+        },
+        "DeleteMemoryVolume": {
+            "Type": "Task",
+            "Resource": "${delete_memory_volume}",
+            "Next": "Success"
         },
         "Success": {
             "Type": "Succeed"
