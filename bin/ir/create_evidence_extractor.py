@@ -3,6 +3,7 @@
 from boto3 import client
 from investigation_logger import get_logger, to_json, log_to_console
 from get_instance import InstanceService
+from manage_volumes import MoveVolumesRequst
 from terminate_instance import terminate_instance
 from sys import argv
 from os import environ
@@ -79,17 +80,13 @@ def lambda_handler(event: object, context):
         **{
             "is_ready": False,
             "extractor_id": instance["InstanceId"],
-            "memory_vol_detach_from": instance["InstanceId"],
-            "memory_vol_attach_to": event["instance_id"],
         }
     }
 
 
 def lambda_is_extractor_ready(event: object, context):
-    instance = poll_extractor(
-        event["investigation_id"],
-        event["extractor_id"],
-    )
+    instance = poll_extractor(event["investigation_id"], event["extractor_id"])
+
     event["is_ready"] = instance['State']["Name"] == "running"
     if event["is_ready"]:
         event["memory_volume_id"] = [
@@ -97,6 +94,15 @@ def lambda_is_extractor_ready(event: object, context):
             for device in instance["BlockDeviceMappings"]
             if device["DeviceName"] == "/dev/sdm"
         ][0]
+        event["move_volumes"] = MoveVolumesRequst(
+            event["investigation_id"],
+            [{
+                "volume_id": event["memory_volume_id"],
+                "device": "/dev/sdm"
+            }],
+            event["extractor_id"],
+            event["instance_id"],
+        ).asdict()
 
     return event
 

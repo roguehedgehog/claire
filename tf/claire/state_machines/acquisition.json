@@ -88,12 +88,9 @@
                             "Type": "Task",
                             "Resource": "arn:aws:states:::states:startExecution.sync:2",
                             "Parameters": {
-                                "StateMachineArn": "${move_memory_volume}",
+                                "StateMachineArn": "${move_volumes}",
                                 "Input": {
-                                    "investigation_id.$": "$.investigation_id",
-                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
-                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
-                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "data.$": "$.move_volumes",
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },
@@ -130,12 +127,9 @@
                             "Type": "Task",
                             "Resource": "arn:aws:states:::states:startExecution.sync:2",
                             "Parameters": {
-                                "StateMachineArn": "${move_memory_volume}",
+                                "StateMachineArn": "${move_volumes}",
                                 "Input": {
-                                    "investigation_id.$": "$.investigation_id",
-                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
-                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
-                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "data.$": "$.move_volumes",
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },
@@ -172,12 +166,9 @@
                             "Type": "Task",
                             "Resource": "arn:aws:states:::states:startExecution.sync:2",
                             "Parameters": {
-                                "StateMachineArn": "${move_memory_volume}",
+                                "StateMachineArn": "${move_volumes}",
                                 "Input": {
-                                    "investigation_id.$": "$.investigation_id",
-                                    "memory_vol_detach_from.$": "$.memory_vol_detach_from",
-                                    "memory_vol_attach_to.$": "$.memory_vol_attach_to",
-                                    "memory_volume_id.$": "$.memory_volume_id",
+                                    "data.$": "$.move_volumes",
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },
@@ -201,8 +192,75 @@
                     "States": {
                         "SnapshotDisks": {
                             "Type": "Task",
-                            "Resource": "${snapshot_disks}",
+                            "Resource": "${snapshot_volumes}",
+                            "Next": "CreateVolumes"
+                        },
+                        "CreateVolumes": {
+                            "Type": "Task",
+                            "Resource": "${create_volumes_from_snapshots}",
                             "End": true
+                        },
+                        "WaitCreateVolumes": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollCreateVolumes"
+                        },
+                        "PollCreateVolumes": {
+                            "Type": "Task",
+                            "Resource": "${is_detach_volumes_complete}",
+                            "Next": "IsCreateVolumes"
+                        },
+                        "IsCreateVolumes": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "MountVolumes"
+                                }
+                            ],
+                            "Default": "WaitCreateVolumes"
+                        },
+                        "MountVolumes": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "${move_volumes}",
+                                "Input": {
+                                    "data.$": "$.mount_volumes",
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+                                }
+                            },
+                            "Next": "AcquireVolumes",
+                            "ResultPath": null
+                        },
+                        "AcquireVolumes": {
+                            "Type": "Task",
+                            "Resource": "${acquire_volumes}",
+                            "Next": "IsCreateVolumes"
+                        },
+                        "WaitAcquireVolumes": {
+                            "Type": "Wait",
+                            "Seconds": 10,
+                            "Next": "PollAcquireVolumes"
+                        },
+                        "PollAcquireVolumes": {
+                            "Type": "Task",
+                            "Resource": "${is_detach_volumes_complete}",
+                            "Next": "DetachAndDeleteVolumes"
+                        },
+                        "DetachAndDeleteVolumes": {
+                            "Type": "Task",
+                            "Resource": "arn:aws:states:::states:startExecution.sync:2",
+                            "Parameters": {
+                                "StateMachineArn": "${move_volumes}",
+                                "Input": {
+                                    "data.$": "$.move_volumes",
+                                    "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
+                                }
+                            },
+                            "End": true,
+                            "ResultPath": null
                         }
                     }
                 }

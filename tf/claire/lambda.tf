@@ -101,9 +101,9 @@ resource "aws_lambda_function" "prepare_memory_volume" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "detach_memory_volume" {
-  function_name = "claire_detach_memory_volume"
-  handler       = "extract_memory.lambda_detach_memory_volume"
+resource "aws_lambda_function" "detach_volumes" {
+  function_name = "claire_detach_volumes"
+  handler       = "manage_volumes.lambda_detach_volumes"
   role          = module.manage_volume_role.arn
 
   publish          = true
@@ -112,9 +112,9 @@ resource "aws_lambda_function" "detach_memory_volume" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "attach_memory_volume" {
-  function_name = "claire_attach_memory_volume"
-  handler       = "extract_memory.lambda_attach_memory_volume"
+resource "aws_lambda_function" "attach_volumes" {
+  function_name = "claire_attach_volumes"
+  handler       = "manage_volumes.lambda_attach_volumes"
   role          = module.manage_volume_role.arn
 
   publish          = true
@@ -123,9 +123,9 @@ resource "aws_lambda_function" "attach_memory_volume" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "delete_memory_volume" {
-  function_name = "claire_delete_memory_volume"
-  handler       = "extract_memory.lambda_delete_memory_volume"
+resource "aws_lambda_function" "destroy_volumes" {
+  function_name = "claire_destroy_volumes"
+  handler       = "manage_volumes.lambda_destroy_volumes"
   role          = module.manage_volume_role.arn
 
   publish          = true
@@ -134,9 +134,10 @@ resource "aws_lambda_function" "delete_memory_volume" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "is_memory_volume_detached" {
-  function_name = "claire_is_memory_volume_detached"
-  handler       = "extract_memory.lambda_is_memory_volume_detached"
+
+resource "aws_lambda_function" "is_detach_volumes_complete" {
+  function_name = "claire_is_detach_volumes_complete"
+  handler       = "manage_volumes.lambda_is_detach_complete"
   role          = module.query_volume_role.arn
 
   publish          = true
@@ -145,9 +146,9 @@ resource "aws_lambda_function" "is_memory_volume_detached" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "is_memory_volume_attached" {
-  function_name = "claire_is_memory_volume_attached"
-  handler       = "extract_memory.lambda_is_memory_volume_attached"
+resource "aws_lambda_function" "is_attach_volumes_complete" {
+  function_name = "claire_is_attach_volumes_complete"
+  handler       = "manage_volumes.lambda_is_attach_complete"
   role          = module.query_volume_role.arn
 
   publish          = true

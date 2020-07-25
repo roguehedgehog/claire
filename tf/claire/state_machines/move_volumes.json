@@ -1,9 +1,20 @@
 {
-    "StartAt": "DetachVolume",
+    "StartAt": "IsAttached",
     "States": {
+        "IsAttached": {
+            "Type": "Choice",
+            "Choices": [
+                {
+                    "Variable": "$.data.instance_from",
+                    "StringGreaterThan": "",
+                    "Next": "DetachVolume"
+                }
+            ],
+            "Default": "AttachOrDestroy"
+        },
         "DetachVolume": {
             "Type": "Task",
-            "Resource": "${detach_memory_volume}",
+            "Resource": "${detach_volumes}",
             "Next": "WaitDetachVolume"
         },
         "WaitDetachVolume": {
@@ -13,7 +24,7 @@
         },
         "PollDetachVolume": {
             "Type": "Task",
-            "Resource": "${is_memory_volume_detached}",
+            "Resource": "${is_detach_volumes_complete}",
             "Next": "IsDetachVolume"
         },
         "IsDetachVolume": {
@@ -31,16 +42,16 @@
             "Type": "Choice",
             "Choices": [
                 {
-                    "Variable": "$.memory_vol_attach_to",
+                    "Variable": "$.data.instance_to",
                     "StringGreaterThan": "",
                     "Next": "AttachVolume"
                 }
             ],
-            "Default": "DeleteMemoryVolume"
+            "Default": "DestroyVolumes"
         },
         "AttachVolume": {
             "Type": "Task",
-            "Resource": "${attach_memory_volume}",
+            "Resource": "${attach_volumes}",
             "Next": "WaitAttachVolume"
         },
         "WaitAttachVolume": {
@@ -50,7 +61,7 @@
         },
         "PollAttachVolume": {
             "Type": "Task",
-            "Resource": "${is_memory_volume_attached}",
+            "Resource": "${is_attach_volumes_complete}",
             "Next": "IsAttachVolume"
         },
         "IsAttachVolume": {
@@ -64,9 +75,9 @@
             ],
             "Default": "WaitAttachVolume"
         },
-        "DeleteMemoryVolume": {
+        "DestroyVolumes": {
             "Type": "Task",
-            "Resource": "${delete_memory_volume}",
+            "Resource": "${destroy_volumes}",
             "Next": "Success"
         },
         "Success": {

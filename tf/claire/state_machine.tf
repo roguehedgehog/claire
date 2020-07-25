@@ -9,7 +9,7 @@ data "template_file" "claire_acquisition_state_machine" {
   template = file("state_machines/acquisition.json")
 
   vars = {
-    move_memory_volume           = aws_sfn_state_machine.claire_move_volume.arn
+    move_volumes                 = aws_sfn_state_machine.claire_move_volumes.arn
     create_investigation         = aws_lambda_function.create_investigation.arn
     create_evidence_extractor    = aws_lambda_function.create_evidence_extractor.arn
     poll_evidence_extractor      = aws_lambda_function.poll_evidence_extractor.arn
@@ -23,20 +23,20 @@ data "template_file" "claire_acquisition_state_machine" {
   }
 }
 
-resource "aws_sfn_state_machine" "claire_move_volume" {
-  name       = "claire_move_volume"
+resource "aws_sfn_state_machine" "claire_move_volumes" {
+  name       = "claire_move_volumes"
   role_arn   = aws_iam_role.claire_state_machine_role.arn
-  definition = data.template_file.claire_move_volume_state_machine.rendered
+  definition = data.template_file.claire_move_volumes_state_machine.rendered
 }
 
-data "template_file" "claire_move_volume_state_machine" {
-  template = file("state_machines/move_memory_volume.json")
+data "template_file" "claire_move_volumes_state_machine" {
+  template = file("state_machines/move_volumes.json")
 
   vars = {
-    detach_memory_volume      = aws_lambda_function.detach_memory_volume.arn
-    is_memory_volume_detached = aws_lambda_function.is_memory_volume_detached.arn
-    attach_memory_volume      = aws_lambda_function.attach_memory_volume.arn
-    is_memory_volume_attached = aws_lambda_function.is_memory_volume_attached.arn
-    delete_memory_volume      = aws_lambda_function.delete_memory_volume.arn
+    detach_volumes             = aws_lambda_function.detach_volumes.arn
+    is_detach_volumes_complete = aws_lambda_function.is_detach_volumes_complete.arn
+    attach_volumes             = aws_lambda_function.attach_volumes.arn
+    is_attach_volumes_complete = aws_lambda_function.is_attach_volumes_complete.arn
+    destroy_volumes            = aws_lambda_function.destroy_volumes.arn
   }
 }
