@@ -4,7 +4,7 @@ from boto3 import client
 from investigation_logger import get_logger, to_json, log_to_console
 from run_command import lambda_is_command_complete
 from get_instance import InstanceService
-from manage_volumes import move_volume, MoveVolumesRequst
+from manage_volumes import move_volumes, MoveVolumesRequst
 from sys import argv
 from os import environ
 from pathlib import Path
@@ -20,7 +20,7 @@ class MemoryCaptureService:
         self.instance_service = InstanceService(investigation_id)
         self.logger = self.instance_service.logger
 
-    def prepare_volume(self, extractor_id: str):
+    def prepare_volume(self, extractor_id: str, investigation_id: str):
         ssm = client("ssm")
         self.logger(
             "Preparing memory capture volume on {}".format(extractor_id))
@@ -32,21 +32,26 @@ class MemoryCaptureService:
             TimeoutSeconds=3600,
             Parameters={
                 "commands": [
-                    "mkdir -p /mnt/mem",
-                    "mkfs -t ext4 /dev/xvdm",
-                    "mount /dev/xvdm /mnt/mem",
-                    "mkdir /mnt/mem/memory",
+                    "sudo mkdir -p /mnt/mem",
+                    "sudo mkfs -t ext4 /dev/xvdm",
+                    "sudo mount /dev/xvdm /mnt/mem",
+                    "sudo mkdir /mnt/mem/memory",
                     "cd /mnt/mem/memory",
-                    "wget https://github.com/microsoft/avml/releases/download/v0.2.0/avml",
-                    "chmod +x avml",
+                    "sudo  wget https://github.com/microsoft/avml/releases/download/v0.2.0/avml",
+                    "sudo chmod +x avml",
                     "cd /",
-                    "umount /mnt/mem",
+                    "sudo umount /mnt/mem",
                 ]
-            })
+            },
+            OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
+            OutputS3KeyPrefix="{}/cmd/prepare-memory-volume".format(
+                investigation_id),
+        )
 
         return resp["Command"]["CommandId"]
 
-    def capture_memory(self, instance_id: str, volume_id: str):
+    def capture_memory(self, instance_id: str, volume_id: str,
+                       investigation_id: str):
         ssm = client("ssm")
         self.logger(
             "Sending memory capture commands to {}".format(instance_id))
@@ -67,7 +72,10 @@ class MemoryCaptureService:
                     "cd /",
                     "sudo umount /mnt/mem",
                 ]
-            })
+            },
+            OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
+            OutputS3KeyPrefix="{}/cmd/capture-memory".format(investigation_id),
+        )
 
         return resp["Command"]["CommandId"]
 
@@ -95,7 +103,10 @@ class MemoryCaptureService:
                     "cd /",
                     "sudo umount /mnt/mem",
                 ]
-            })
+            },
+            OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
+            OutputS3KeyPrefix="{}/cmd/upload-memory".format(investigation_id),
+        )
 
         return resp["Command"]["CommandId"]
 
@@ -103,7 +114,8 @@ class MemoryCaptureService:
 def lambda_prepare_memory_volume(event: object, context: object):
     mcs = MemoryCaptureService(event["investigation_id"])
     event["running_command_instance"] = event["extractor_id"]
-    event["running_command_id"] = mcs.prepare_volume(event["extractor_id"])
+    event["running_command_id"] = mcs.prepare_volume(event["extractor_id"],
+                                                     event["investigation_id"])
     event["is_ready"] = False
 
     return event
@@ -116,13 +128,14 @@ def lambda_capture_memory(event: object, context: object):
     event["running_command_id"] = mcs.capture_memory(
         event["instance_id"],
         event["memory_volume_id"],
+        event["investigation_id"],
     )
 
     event["move_volumes"] = MoveVolumesRequst(
         event["investigation_id"],
         [{
             "volume_id": event["memory_volume_id"],
-            "device": "/dev/sdm"
+            "device": "/dev/xvdm"
         }],
         event["instance_id"],
         event["extractor_id"],
@@ -171,7 +184,7 @@ def main():
             event["investigation_id"],
             [{
                 "volume_id": argv[2],
-                "device": "/dev/sdm"
+                "device": "/dev/xvdm"
             }],
             event["extractor_id"],
             event["instance_id"],
@@ -184,6 +197,8 @@ def main():
     except IndexError:
         print("Usage {} [investigation_id] [volume_id] [investigation_bucket]".
               format(argv[0]))
+
+        return 1
 
     event = lambda_prepare_memory_volume(event, context)
     while event["is_ready"] is False:

@@ -10,6 +10,7 @@ data "template_file" "claire_acquisition_state_machine" {
 
   vars = {
     move_volumes                 = aws_sfn_state_machine.claire_move_volumes.arn
+    create_volumes               = aws_lambda_function.create_volumes.arn
     create_investigation         = aws_lambda_function.create_investigation.arn
     create_evidence_extractor    = aws_lambda_function.create_evidence_extractor.arn
     poll_evidence_extractor      = aws_lambda_function.poll_evidence_extractor.arn
@@ -18,7 +19,9 @@ data "template_file" "claire_acquisition_state_machine" {
     upload_memory                = aws_lambda_function.upload_memory.arn
     is_command_complete          = aws_lambda_function.is_command_complete.arn
     isolate_instance             = aws_lambda_function.isolate_instance.arn
-    snapshot_disks               = aws_lambda_function.snapshot_disks.arn
+    snapshot_volumes             = aws_lambda_function.snapshot_volumes.arn
+    snapshot_volumes_ready       = aws_lambda_function.snapshot_volumes_ready.arn
+    capture_volumes              = aws_lambda_function.capture_volumes.arn
     terminate_evidence_extractor = aws_lambda_function.terminate_evidence_extractor.arn
   }
 }

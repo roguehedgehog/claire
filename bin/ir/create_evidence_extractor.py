@@ -98,7 +98,7 @@ def lambda_is_extractor_ready(event: object, context):
             event["investigation_id"],
             [{
                 "volume_id": event["memory_volume_id"],
-                "device": "/dev/sdm"
+                "device": "/dev/xvdm"
             }],
             event["extractor_id"],
             event["instance_id"],

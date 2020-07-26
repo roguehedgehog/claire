@@ -4,20 +4,20 @@
         "CreateInvestigation": {
             "Type": "Task",
             "Resource": "${create_investigation}",
-            "Next": "ProceedWithInvestigation"
+            "Next": "CanInvestigationProceed"
         },
-        "ProceedWithInvestigation": {
+        "CanInvestigationProceed": {
             "Type": "Choice",
             "Choices": [
                 {
                     "Variable": "$.investigation_id",
                     "StringGreaterThan": "",
-                    "Next": "IsolateAndGatherEvidence"
+                    "Next": "IsolateAndPrepareExtractor"
                 }
             ],
             "Default": "InvestigationAlreadyInProgress"
         },
-        "IsolateAndGatherEvidence": {
+        "IsolateAndPrepareExtractor": {
             "Type": "Parallel",
             "Branches": [
                 {
@@ -44,11 +44,37 @@
                                 {
                                     "Variable": "$.is_ready",
                                     "BooleanEquals": true,
-                                    "Next": "PrepareMemoryVolume"
+                                    "Next": "ExtractorReady"
                                 }
                             ],
                             "Default": "WaitForExtractorBoot"
                         },
+                        "ExtractorReady": {
+                            "Type": "Pass",
+                            "End": true
+                        }
+                    }
+                },
+                {
+                    "StartAt": "IsolateInstance",
+                    "States": {
+                        "IsolateInstance": {
+                            "Type": "Task",
+                            "Resource": "${isolate_instance}",
+                            "End": true
+                        }
+                    }
+                }
+            ],
+            "OutputPath": "$.[0]",
+            "Next": "GatherEvidence"
+        },
+        "GatherEvidence": {
+            "Type": "Parallel",
+            "Branches": [
+                {
+                    "StartAt": "PrepareMemoryVolume",
+                    "States": {
                         "PrepareMemoryVolume": {
                             "Type": "Task",
                             "Resource": "${prepare_memory_volume}",
@@ -178,76 +204,77 @@
                     }
                 },
                 {
-                    "StartAt": "IsolateInstance",
+                    "StartAt": "SnapshotVolumes",
                     "States": {
-                        "IsolateInstance": {
-                            "Type": "Task",
-                            "Resource": "${isolate_instance}",
-                            "End": true
-                        }
-                    }
-                },
-                {
-                    "StartAt": "SnapshotDisks",
-                    "States": {
-                        "SnapshotDisks": {
+                        "SnapshotVolumes": {
                             "Type": "Task",
                             "Resource": "${snapshot_volumes}",
-                            "Next": "CreateVolumes"
+                            "Next": "WaitSnapshotVolumes"
                         },
-                        "CreateVolumes": {
-                            "Type": "Task",
-                            "Resource": "${create_volumes_from_snapshots}",
-                            "End": true
-                        },
-                        "WaitCreateVolumes": {
+                        "WaitSnapshotVolumes": {
                             "Type": "Wait",
                             "Seconds": 10,
-                            "Next": "PollCreateVolumes"
+                            "Next": "PollSnapshotVolumes"
                         },
-                        "PollCreateVolumes": {
+                        "PollSnapshotVolumes": {
                             "Type": "Task",
-                            "Resource": "${is_detach_volumes_complete}",
-                            "Next": "IsCreateVolumes"
+                            "Resource": "${snapshot_volumes_ready}",
+                            "Next": "IsSnapshotVolumes"
                         },
-                        "IsCreateVolumes": {
+                        "IsSnapshotVolumes": {
                             "Type": "Choice",
                             "Choices": [
                                 {
                                     "Variable": "$.is_ready",
                                     "BooleanEquals": true,
-                                    "Next": "MountVolumes"
+                                    "Next": "CreateVolumesFromSnapshots"
                                 }
                             ],
-                            "Default": "WaitCreateVolumes"
+                            "Default": "WaitSnapshotVolumes"
                         },
-                        "MountVolumes": {
+                        "CreateVolumesFromSnapshots": {
+                            "Type": "Task",
+                            "Resource": "${create_volumes}",
+                            "Next": "AttachVolumes"
+                        },
+                        "AttachVolumes": {
                             "Type": "Task",
                             "Resource": "arn:aws:states:::states:startExecution.sync:2",
                             "Parameters": {
                                 "StateMachineArn": "${move_volumes}",
                                 "Input": {
-                                    "data.$": "$.mount_volumes",
+                                    "data.$": "$.data",
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },
-                            "Next": "AcquireVolumes",
+                            "Next": "CaptureVolumes",
                             "ResultPath": null
                         },
-                        "AcquireVolumes": {
+                        "CaptureVolumes": {
                             "Type": "Task",
-                            "Resource": "${acquire_volumes}",
-                            "Next": "IsCreateVolumes"
+                            "Resource": "${capture_volumes}",
+                            "Next": "WaitCaptureVolumes"
                         },
-                        "WaitAcquireVolumes": {
+                        "WaitCaptureVolumes": {
                             "Type": "Wait",
-                            "Seconds": 10,
-                            "Next": "PollAcquireVolumes"
+                            "Seconds": 60,
+                            "Next": "PollCaptureVolumes"
                         },
-                        "PollAcquireVolumes": {
+                        "PollCaptureVolumes": {
                             "Type": "Task",
-                            "Resource": "${is_detach_volumes_complete}",
-                            "Next": "DetachAndDeleteVolumes"
+                            "Resource": "${is_command_complete}",
+                            "Next": "IsCaptureVolumes"
+                        },
+                        "IsCaptureVolumes": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.is_ready",
+                                    "BooleanEquals": true,
+                                    "Next": "DetachAndDeleteVolumes"
+                                }
+                            ],
+                            "Default": "WaitCaptureVolumes"
                         },
                         "DetachAndDeleteVolumes": {
                             "Type": "Task",
@@ -255,7 +282,7 @@
                             "Parameters": {
                                 "StateMachineArn": "${move_volumes}",
                                 "Input": {
-                                    "data.$": "$.move_volumes",
+                                    "data.$": "$.data",
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },

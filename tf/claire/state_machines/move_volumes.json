@@ -10,7 +10,7 @@
                     "Next": "DetachVolume"
                 }
             ],
-            "Default": "AttachOrDestroy"
+            "Default": "PollDetachVolume"
         },
         "DetachVolume": {
             "Type": "Task",

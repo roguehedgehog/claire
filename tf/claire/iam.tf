@@ -27,7 +27,7 @@ module "create_investigation_role" {
   policy_document = data.aws_iam_policy_document.create_investigation.json
 }
 
-data "aws_iam_policy_document" "snapshot_disks" {
+data "aws_iam_policy_document" "snapshot_volumes" {
   statement {
     effect = "Allow"
     actions = [
@@ -41,12 +41,12 @@ data "aws_iam_policy_document" "snapshot_disks" {
   }
 }
 
-module "snapshot_disks_role" {
+module "snapshot_volumes_role" {
   source = "./modules/iam_lambda"
 
-  role_name       = "snapshot_disks_role"
-  policy_name     = "snapshot_disks_policy"
-  policy_document = data.aws_iam_policy_document.snapshot_disks.json
+  role_name       = "snapshot_volumes_role"
+  policy_name     = "snapshot_volumes_policy"
+  policy_document = data.aws_iam_policy_document.snapshot_volumes.json
 }
 
 data "aws_iam_policy_document" "isolate_instance" {
@@ -175,6 +175,7 @@ data "aws_iam_policy_document" "manage_volume" {
       "ec2:DescribeInstances",
       "ec2:DescribeVolumes",
       "ec2:AttachVolume",
+      "ec2:CreateVolume",
       "ec2:DetachVolume",
       "ec2:DeleteVolume",
     ]

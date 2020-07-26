@@ -66,14 +66,14 @@ class SnapshotCreationService:
 def lambda_snapshot_handler(event: object, context: object):
     snapper = SnapshotCreationService(event["investigation_id"])
     event["snapshot_ids"] = snapper.snapshot_volumes(event["investigation_id"])
-    event["ready"] = False
+    event["is_ready"] = False
 
     return event
 
 
 def lambda_snapshot_ready_handler(event, context):
     snapper = SnapshotCreationService(event["investigation_id"])
-    event["ready"] = snapper.is_snapshot_complete(event["snapshot_ids"])
+    event["is_ready"] = snapper.is_snapshot_complete(event["snapshot_ids"])
 
     return event
 

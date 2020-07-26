@@ -38,7 +38,8 @@ class ManageVolumesService:
                                           SnapshotId=snapshot)
             volume = {
                 "volume_id": resp["VolumeId"],
-                "device": "/dev/sd{}".format(mount_letter),
+                "device": "/dev/xvd{}".format(mount_letter),
+                "snapshot_id": snapshot,
             }
             self.logger("Create volume request successful {}".format(volume))
 
@@ -94,9 +95,18 @@ class ManageVolumesService:
 
 
 def lambda_create_volumes(event: object, context: object):
-    mvs = ManageVolumesService(event["data"]["investigation_id"])
-    event["data"]["volumes"] = mvs.create_volumes(
-        event["data"]["snapshot_ids"], event["data"]["az"])
+    id = event["investigation_id"]
+    mvs = ManageVolumesService(id)
+    extractor = InstanceService(id).get_extractor_instance(id)
+
+    event["volumes"] = mvs.create_volumes(
+        event["snapshot_ids"], extractor["Placement"]["AvailabilityZone"])
+    event["data"] = {
+        "investigation_id": event["investigation_id"],
+        "volumes": event["volumes"],
+        "instance_from": None,
+        "instance_to": extractor["InstanceId"]
+    }
     event["is_ready"] = False
 
     return event
@@ -141,8 +151,10 @@ def lambda_destroy_volumes(event: object, context: object):
     return event
 
 
-def move_volume(event, context):
-    event = lambda_detach_volumes(event, context)
+def move_volumes(event, context):
+    if event["data"]["instance_from"]:
+        event = lambda_detach_volumes(event, context)
+
     while event["is_ready"] is False:
         sleep(5)
         event = lambda_is_detach_complete(event, context)
@@ -173,16 +185,17 @@ def main():
             argv[1],
             [{
                 "volume_id": argv[2],
-                "device": "/dev/sdm"
+                "device": "/dev/xvdm"
             }],
             event["extractor_id"],
             event["instance_id"],
         ).asdict()
 
-        move_volume(event, {})
-
     except IndexError:
         print("Usage {} [investigation_id] [volume_id]".format(argv[0]))
+        return 1
+
+    move_volumes(event, {})
 
 
 if __name__ == "__main__":
