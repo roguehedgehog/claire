@@ -3,7 +3,7 @@
 from boto3 import client
 from botocore.exceptions import ClientError
 from os import environ
-from investigation_logger import CLAIRE, get_logger
+from investigation_logger import CLAIRE, get_logger, to_json
 from datetime import datetime
 from sys import argv, stderr
 from json import dumps
@@ -52,6 +52,9 @@ class InvestigationCreationService:
                 return (False, "The instance id is empty")
 
             instance = self.__get_instance(instance_id)
+            if not instance:
+                return (False,
+                        "Instance {} cannot be found".format(instance_id))
             (
                 is_under_investigaiton,
                 investigation_id,
@@ -61,6 +64,21 @@ class InvestigationCreationService:
                     False,
                     "The instance {} is being investigated by investigation {}"
                     .format(instance_id, investigation_id))
+
+            volume_attached_to_memory_device = [
+                device["Ebs"]["VolumeId"]
+                for device in instance["BlockDeviceMappings"]
+                if device["DeviceName"] == "/dev/sdm"
+                or device["DeviceName"] == "/dev/xvdm"
+            ]
+
+            if volume_attached_to_memory_device:
+                return (
+                    False,
+                    "Volume {} is attached to xvdm which will be used to capture memory"
+                    .format(volume_attached_to_memory_device))
+
+            return (True, "")
 
         except KeyError as e:
             return (False, "Invalid request: {}".format(e))
@@ -97,7 +115,7 @@ class InvestigationCreationService:
         self.logger("Getting instance details for {}".format(instance_id))
         resp = self.ec2.describe_instances(InstanceIds=[instance_id])
         if resp["Reservations"] == []:
-            raise ValueError("Instance {} cannot be found".format(instance_id))
+            return None
 
         instance = resp["Reservations"][0]["Instances"][0]
         self.logger("Instance {} found".format(instance_id))
@@ -151,8 +169,10 @@ def main():
         print(errors)
         exit(1)
 
-    InvestigationCreationService().create_investigation(
+    resp = InvestigationCreationService().create_investigation(
         argv[1], {"details": "Manually triggered"})
+
+    print(to_json(resp))
 
 
 if __name__ == "__main__":

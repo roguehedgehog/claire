@@ -96,7 +96,7 @@ class MemoryCaptureService:
                     "sudo mkdir -p /mnt/mem",
                     "sudo mount -o ro /dev/xvdm /mnt/mem",
                     "cd /mnt/mem/memory",
-                    "aws s3 cp memory.lime 's3://{}/{}/'".format(
+                    "aws s3 cp memory.lime 's3://{}/{}/memory/'".format(
                         bucket,
                         investigation_id,
                     ),
@@ -205,19 +205,19 @@ def main():
         sleep(5)
         event = lambda_is_command_complete(event, context)
 
-    event = move_volume(event, context)
+    event = move_volumes(event, context)
     event = lambda_capture_memory(event, context)
     while event["is_ready"] is False:
         sleep(5)
         event = lambda_is_command_complete(event, context)
 
-    event = move_volume(event, context)
+    event = move_volumes(event, context)
     event = lambda_upload_memory(event, context)
     while event["is_ready"] is False:
         sleep(5)
         event = lambda_is_command_complete(event, context)
 
-    move_volume(event, context)
+    move_volumes(event, context)
 
 
 if __name__ == "__main__":

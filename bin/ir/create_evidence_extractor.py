@@ -129,6 +129,7 @@ def main():
         print(
             "Usage {} [investigation_id] [iam_profile_arn] [security_group_id]"
             .format(argv[0]))
+        return 1
 
     event = lambda_handler(event, {})
     while event["is_ready"] is False:
