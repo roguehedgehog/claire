@@ -15,7 +15,7 @@
                     "Next": "IsolateAndPrepareExtractor"
                 }
             ],
-            "Default": "InvestigationAlreadyInProgress"
+            "Default": "CannotCreateInvestigation"
         },
         "IsolateAndPrepareExtractor": {
             "Type": "Parallel",
@@ -302,9 +302,8 @@
         "Success": {
             "Type": "Succeed"
         },
-        "InvestigationAlreadyInProgress": {
-            "Type": "Fail",
-            "Cause": "This instance is already being investigated"
+        "CannotCreateInvestigation": {
+            "Type": "Fail"
         }
     }
 }

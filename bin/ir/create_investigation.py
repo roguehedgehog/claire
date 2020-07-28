@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from boto3 import client
+from botocore.exceptions import ClientError
 from os import environ
 from investigation_logger import CLAIRE, get_logger
 from datetime import datetime
@@ -15,21 +16,20 @@ class InvestigationCreationService:
 
     def create_investigation_from_guardduty(self, event: object) -> object:
         self.logger = get_logger(None)
-        self.logger("Received event {}".format(event["id"]))
-        if not self.__is_investigatable(event):
-            self.logger("Event {} {} will not be investigated".format(
-                event["source"],
-                event["id"],
-            ))
-            return {"investigation_id": None, "instance_id": None}
-
-        self.logger("Event {} {} can be investigated.".format(
-            event["source"],
-            event["id"],
-        ))
+        (is_investigatable, issue) = self.__is_investigatable(event)
+        if not is_investigatable:
+            self.logger("Event will not be investigated {} because {}".format(
+                event, issue))
+            return {
+                "investigation_id": None,
+                "instance_id": None,
+                "issue": issue
+            }
 
         instance_id = event["detail"]["resource"]["instanceDetails"][
             "instanceId"]
+        self.logger("Instance {} will be investigated.".format(instance_id))
+
         investigation_id = self.create_investigation(instance_id, event)
 
         return {
@@ -37,21 +37,40 @@ class InvestigationCreationService:
             "instance_id": instance_id
         }
 
-    def __is_investigatable(self, event: object) -> bool:
-        return "resourceType" in event["detail"]["resource"] and \
-            event["detail"]["resource"]["resourceType"] == "Instance"
+    def __is_investigatable(self, event: object) -> (bool, str):
+        if event == {}:
+            return (False, "The event does not contain any information")
+
+        try:
+            if event["detail"]["resource"]["resourceType"] != "Instance":
+                return (False, "The alert in not for an instance")
+
+            instance_id = event["detail"]["resource"]["instanceDetails"][
+                "instanceId"]
+
+            if instance_id == "":
+                return (False, "The instance id is empty")
+
+            instance = self.__get_instance(instance_id)
+            (
+                is_under_investigaiton,
+                investigation_id,
+            ) = self.__is_under_investigation(instance)
+            if is_under_investigaiton:
+                return (
+                    False,
+                    "The instance {} is being investigated by investigation {}"
+                    .format(instance_id, investigation_id))
+
+        except KeyError as e:
+            return (False, "Invalid request: {}".format(e))
+
+        except ClientError as e:
+            return (False, "AWS returned: {}".format(e))
 
     def create_investigation(self, instance_id: str, event: object) -> str:
         self.logger = get_logger(None)
         instance = self.__get_instance(instance_id)
-        if self.__is_under_investigation(instance):
-            self.logger(
-                "Instance {} is already under investigation: {}".format(
-                    instance_id,
-                    self.__get_investigation_id(instance),
-                ))
-            return
-
         investigation_id = "{}_{}".format(datetime.now(),
                                           instance["InstanceId"])
 
@@ -99,8 +118,11 @@ class InvestigationCreationService:
         self.ec2.create_tags(Resources=[instance_id], Tags=tags)
         self.logger("Tagging complete")
 
-    def __is_under_investigation(self, instance: object) -> bool:
-        return CLAIRE in [tag["Key"] for tag in instance["Tags"]]
+    def __is_under_investigation(self, instance: object) -> (bool, str):
+        if CLAIRE in [tag["Key"] for tag in instance["Tags"]]:
+            return (True, self.__get_investigation_id(instance))
+
+        return (False, "")
 
     def __get_investigation_id(self, instance: object) -> str:
         for tag in instance["Tags"]:
