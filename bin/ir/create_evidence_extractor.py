@@ -10,8 +10,6 @@ from os import environ
 from pathlib import Path
 from time import sleep
 
-UBUNTU_2004_64_HVM = "ami-0127d62154efde733"
-
 
 def create_extractor_instance(investagtion_id: str):
     ec2 = client("ec2")
@@ -21,7 +19,7 @@ def create_extractor_instance(investagtion_id: str):
     memory_size = instance_service.get_memory_size(instance)
     instance_service.logger("Creating extractor instance")
     extractor = ec2.run_instances(
-        ImageId=UBUNTU_2004_64_HVM,
+        ImageId=environ["EXTRACTOR_AMI_ID"],
         InstanceType="t2.small",
         MinCount=1,
         MaxCount=1,

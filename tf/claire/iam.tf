@@ -240,7 +240,7 @@ data "aws_iam_policy_document" "claire_state_machine_policy" {
     principals {
       type = "Service"
       identifiers = [
-        "states.eu-west-1.amazonaws.com",
+        "states.${var.aws_region}.amazonaws.com",
         "events.amazonaws.com",
       ]
     }

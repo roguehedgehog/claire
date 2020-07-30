@@ -19,7 +19,7 @@ resource "aws_lambda_function" "create_investigation" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
-
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "snapshot_volumes" {
@@ -31,6 +31,7 @@ resource "aws_lambda_function" "snapshot_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "snapshot_volumes_ready" {
@@ -68,7 +69,8 @@ resource "aws_lambda_function" "create_evidence_extractor" {
 
   environment {
     variables = {
-      IAM_PROFILE = aws_iam_instance_profile.claire_ec2_evidence_extractor_profile.arn
+      IAM_PROFILE      = aws_iam_instance_profile.claire_ec2_evidence_extractor_profile.arn
+      EXTRACTOR_AMI_ID = var.evidence_extractor_ami_id
     }
   }
 
@@ -127,6 +129,7 @@ resource "aws_lambda_function" "detach_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "attach_volumes" {
@@ -138,6 +141,7 @@ resource "aws_lambda_function" "attach_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "create_volumes" {
@@ -149,6 +153,7 @@ resource "aws_lambda_function" "create_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "destroy_volumes" {
@@ -160,6 +165,7 @@ resource "aws_lambda_function" "destroy_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 
@@ -172,6 +178,7 @@ resource "aws_lambda_function" "is_detach_volumes_complete" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "is_attach_volumes_complete" {
@@ -183,6 +190,7 @@ resource "aws_lambda_function" "is_attach_volumes_complete" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }
 
 resource "aws_lambda_function" "capture_memory" {
@@ -252,4 +260,5 @@ resource "aws_lambda_function" "capture_volumes" {
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  timeout          = 10
 }

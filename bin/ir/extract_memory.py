@@ -31,17 +31,7 @@ class MemoryCaptureService:
                 extractor_id),
             TimeoutSeconds=3600,
             Parameters={
-                "commands": [
-                    "sudo mkdir -p /mnt/mem",
-                    "sudo mkfs -t ext4 /dev/xvdm",
-                    "sudo mount /dev/xvdm /mnt/mem",
-                    "sudo mkdir /mnt/mem/memory",
-                    "cd /mnt/mem/memory",
-                    "sudo  wget https://github.com/microsoft/avml/releases/download/v0.2.0/avml",
-                    "sudo chmod +x avml",
-                    "cd /",
-                    "sudo umount /mnt/mem",
-                ]
+                "commands": ["sudo memory_prepare_volume.sh /dev/xvdm"]
             },
             OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
             OutputS3KeyPrefix="{}/cmd/prepare-memory-volume".format(
@@ -67,14 +57,10 @@ class MemoryCaptureService:
                 "commands": [
                     "sudo mkdir -p /mnt/mem",
                     "sudo mount /dev/xvdm /mnt/mem",
-                    "cd /mnt/mem/memory",
-                    "sudo ./avml --compress memory.lime",
-                    "cd /",
+                    "sudo /mnt/mem/memory/avml --compress /mnt/mem/memory/memory.lime",
                     "sudo umount /mnt/mem",
                 ]
             },
-            OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
-            OutputS3KeyPrefix="{}/cmd/capture-memory".format(investigation_id),
         )
 
         return resp["Command"]["CommandId"]
@@ -91,17 +77,11 @@ class MemoryCaptureService:
             TimeoutSeconds=3600,
             Parameters={
                 "commands": [
-                    "sudo apt update",
-                    "sudo apt install -y awscli",
-                    "sudo mkdir -p /mnt/mem",
-                    "sudo mount -o ro /dev/xvdm /mnt/mem",
-                    "cd /mnt/mem/memory",
-                    "aws s3 cp memory.lime 's3://{}/{}/memory/'".format(
+                    "sudo memory_upload.sh /dev/xvdm 's3://{}/{}/memory/'".
+                    format(
                         bucket,
                         investigation_id,
-                    ),
-                    "cd /",
-                    "sudo umount /mnt/mem",
+                    )
                 ]
             },
             OutputS3BucketName=environ["INVESTIGATION_BUCKET"],

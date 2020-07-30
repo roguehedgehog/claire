@@ -1,0 +1,40 @@
+{
+    "builders": [
+        {
+            "ami_name": "Vulnerable Drupal Instance",
+            "type": "amazon-ebs",
+            "instance_type": "t2.nano",
+            "source_ami_filter": {
+                "filters": {
+                    "virtualization-type": "hvm",
+                    "name": "ubuntu/images/*ubuntu-bionic-18.04-amd64-server-*",
+                    "root-device-type": "ebs"
+                },
+                "owners": [
+                    "099720109477"
+                ],
+                "most_recent": true
+            },
+            "ssh_username": "ubuntu"
+        }
+    ],
+    "provisioners": [
+        {
+            "type": "file",
+            "source": "./vuln_app.sql.gz",
+            "destination": "/tmp/vuln_app.sql.gz"
+        },
+        {
+            "type": "file",
+            "source": "./install-vuln-drupal.sh",
+            "destination": "/tmp/install-vuln-drupal.sh"
+        },
+        {
+            "type": "shell",
+            "inline": [
+                "chmod +x /tmp/install-vuln-drupal.sh",
+                "sudo /tmp/install-vuln-drupal.sh"
+            ]
+        }
+    ]
+}

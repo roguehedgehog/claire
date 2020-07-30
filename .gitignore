@@ -161,9 +161,11 @@ override.tf.json
 terraform.rc
 
 # lab keys
-tf/labs/vuln-app/res/vuln_app
-tf/labs/vuln-app/res/vuln_app.pub
+tf/labs/vuln-app/ami/vuln_app
+tf/labs/vuln-app/ami/vuln_app.pub
 .vscode
+
+ami_details.txt
 
 
 #Added by cargo

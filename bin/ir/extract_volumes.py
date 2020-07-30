@@ -31,9 +31,6 @@ class VolumeCaptureService:
         self.logger(
             "Sending volume capture commands to {}".format(instance_id))
 
-        upload = "sudo aws s3 sync /tmp/investigation 's3://{}/{}/'".format(
-            environ["INVESTIGATION_BUCKET"], investigation_id)
-
         resp = ssm.send_command(
             DocumentName="AWS-RunShellScript",
             InstanceIds=[instance_id],
@@ -41,12 +38,8 @@ class VolumeCaptureService:
                 investigation_id),
             TimeoutSeconds=3600,
             Parameters={
-                "commands": [
-                    "sudo apt update",
-                    "sudo apt install --no-install-recommends --yes awscli sleuthkit",
-                ] + self.__capture_root_volume(volumes.pop(0)) + reduce(
-                    lambda commands, vol: commands + self.__capture_volume(
-                        vol), volumes, []) + [upload, upload]
+                "commands":
+                self.__get_capture_commands(investigation_id, volumes)
             },
             OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
             OutputS3KeyPrefix="{}/cmd/extract-volumes".format(
@@ -58,34 +51,21 @@ class VolumeCaptureService:
             "running_command_id": resp["Command"]["CommandId"],
         }
 
-    def __capture_volume(self, vol: dict) -> list:
-        return [
-            "sudo tsk_gettimes {}1 \
-                | mactime -d -y \
-                    -p /tmp/investigation/artifacts/passwd \
-                    -g /tmp/investigation/artifacts/group \
-                | gzip > /tmp/investigation/timeline/{}.csv.gz".format(
-                quote(vol["device"]), quote(vol["snapshot_id"]))
-        ]
+    def __get_capture_commands(self, investigation_id: str,
+                               volumes: list) -> list:
+        root_vol = volumes.pop(0)
+        capture_root = "sudo volume_root_capture.sh {}1 {}".format(
+            quote(root_vol["device"]),
+            root_vol["snapshot_id"],
+        )
+        capture_others = map(
+            lambda vol: "sudo volume_timeline.sh {}1 {}".format(
+                quote(root_vol["device"]), root_vol["snapshot_id"]), volumes)
 
-    def __capture_root_volume(self, vol: dict) -> list:
-        return [
-            "sudo mkdir -p /mnt/vol",
-            "sudo rm -rf /tmp/investigation; mkdir -p /tmp/investigation/logs;  mkdir /tmp/investigation/artifacts; mkdir /tmp/investigation/timeline",
-            "sudo mount -o ro {}1 /mnt/vol".format(quote(vol["device"])),
-            "cd /mnt/vol/var/log; sudo bash -c 'find . -type f -exec grep -Iq . {} + -print | cpio -pdm /tmp/investigation/logs/'",
-            "sudo gzip -r /tmp/investigation/logs/",
-            "sudo last -f /mnt/vol/var/log/wtmp > /tmp/investigation/logs/wtmp # system power logs",
-            "sudo last -f /mnt/vol/var/log/btmp > /tmp/investigation/logs/btmp # login attempts",
-            "cd /mnt/vol/etc/; sudo bash -c 'cp {passwd,group,shadow,hostname,timezone,hosts,resolv.conf,*-release,sudoers,fstab,crontab} /tmp/investigation/artifacts/'",
-            "sudo tsk_gettimes {} \
-                | mactime -d -y \
-                    -p /tmp/investigation/artifacts/passwd \
-                    -g /tmp/investigation/artifacts/group \
-                | gzip > /tmp/investigation/timeline/root-{}.csv.gz".format(
-                quote(vol["device"]), vol["snapshot_id"]),
-            "cd /; sudo umount /mnt/vol",
-        ]
+        upload = "sudo aws s3 sync /home/ubuntu/investigation 's3://{}/{}/'".format(
+            environ["INVESTIGATION_BUCKET"], investigation_id)
+
+        return [capture_root] + list(capture_others) + [upload, upload]
 
 
 def lambda_capture_volumes(event, context):
