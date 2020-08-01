@@ -3,7 +3,7 @@
         {
             "ami_name": "Vulnerable Drupal Instance",
             "type": "amazon-ebs",
-            "instance_type": "t2.nano",
+            "instance_type": "t2.micro",
             "source_ami_filter": {
                 "filters": {
                     "virtualization-type": "hvm",

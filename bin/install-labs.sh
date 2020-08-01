@@ -5,17 +5,17 @@ set -euo pipefail
 terraform -v
 packer -v
 
-readonly VULN_DRUPAL_AMI=$(aws ec2 describe-images \
-        --filters Name=name,Values="Vulnerable Drupal Instance" \
+readonly LAB_AMI=$(aws ec2 describe-images \
+        --filters Name=name,Values="CLAIRE Vulnerable Lab Server" \
         | jq -r .Images[0].ImageId)
 
-if [ "$CLAIRE_AMI" != null ]; then
-    echo "Removing lab AMI ${VULN_DRUPAL_AMI}"
-    aws ec2 deregister-image --image-id "$VULN_DRUPAL_AMI"
+if [ "$LAB_AMI" != null ]; then
+    echo "Removing lab AMI ${LAB_AMI}"
+    aws ec2 deregister-image --image-id "$LAB_AMI"
 fi
 
-cd tf/labs/vuln-app/ami
-echo "Creating Vulnerable Drupal Image with packer"
+cd tf/labs/ami
+echo "Creating Vulnerable Server Image with packer"
 #packer build ami.json | tee ami_details.txt
 AMI_ID=$(tail ami_details.txt \
     | grep ami \
@@ -23,11 +23,16 @@ AMI_ID=$(tail ami_details.txt \
 
 cd ../
 if [ -f terraform.tfvars ]; then
-    sed -i '/vulnerable_ami_id/d' terraform.tfvars
+    sed -i '/lab_ami_id/d' terraform.tfvars
 fi
 
-echo -e "\nvulnerable_ami_id = \"${AMI_ID}\"" >> terraform.tfvars
+echo -e "\nlab_ami_id = \"${AMI_ID}\"" >> terraform.tfvars
 
-echo "Starting vuln app with terraform"
+if [ ! -f dist/lab_key ]; then
+    echo "Generating keypair for labs in tf/labs/ami/dist/lab_key"
+    ssh-keygen -q -N '' -t rsa -b 4096 -f dist/lab_key
+fi
+
+echo "Starting lab with terraform"
 terraform init
 terraform apply
