@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 from boto3 import client
-from investigation_logger import get_logger, to_json, log_to_console, CLAIRE
-from sys import argv
+
+from investigation_logger import CLAIRE, get_logger
 
 
 class InstanceService:
@@ -60,27 +60,3 @@ class InstanceService:
             InstanceTypes=[instance["InstanceType"]])
 
         return resp["InstanceTypes"][0]["MemoryInfo"]["SizeInMiB"]
-
-
-def main():
-    try:
-        log_to_console()
-        service = InstanceService(argv[1])
-        instance = service.get_instance(argv[1])
-        try:
-            extractor = service.get_extractor_instance(argv[1])
-        except ValueError:
-            extractor = "Evidence Extractor does not exist"
-        print(
-            to_json({
-                "instance": instance,
-                "extractor": extractor,
-                "volumes": service.get_volumes(instance),
-                "memory": service.get_memory_size(instance),
-            }))
-    except IndexError:
-        print("Usage {} [investigation_id] [...]".format(argv[0]))
-
-
-if __name__ == "__main__":
-    main()

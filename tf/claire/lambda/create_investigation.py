@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+from datetime import datetime
+from json import dumps
+from os import environ
+
 from boto3 import client
 from botocore.exceptions import ClientError
-from os import environ
-from investigation_logger import CLAIRE, get_logger, to_json
-from datetime import datetime
-from sys import argv, stderr
-from json import dumps
+
+from investigation_logger import CLAIRE, get_logger
 
 
 class InvestigationCreationService:
@@ -14,7 +15,7 @@ class InvestigationCreationService:
     s3 = client("s3")
     logger = None
 
-    def create_investigation_from_guardduty(self, event: object) -> object:
+    def create_investigation_from_alert(self, event: object) -> object:
         self.logger = get_logger(None)
         (is_investigatable, issue) = self.__is_investigatable(event)
         if not is_investigatable:
@@ -98,7 +99,6 @@ class InvestigationCreationService:
         self.__put(investigation_id, "instance.json", instance)
 
         self.__tag(
-            investigation_id,
             instance_id,
             [{
                 "Key": CLAIRE,
@@ -131,7 +131,7 @@ class InvestigationCreationService:
         )
         self.logger("Putting {} complete".format(name))
 
-    def __tag(self, investigation_id: str, instance_id: str, tags: list):
+    def __tag(self, instance_id: str, tags: list):
         self.logger("Tagging suspicious instance")
         self.ec2.create_tags(Resources=[instance_id], Tags=tags)
         self.logger("Tagging complete")
@@ -147,33 +147,9 @@ class InvestigationCreationService:
             if tag["Key"] == "InvestigationId":
                 return tag["Value"]
 
+        return None
 
-def lambda_handler(event, context):
+
+def lambda_handler(event, _):
     creator = InvestigationCreationService()
-    return creator.create_investigation_from_guardduty(event)
-
-
-def main():
-    errors = []
-    if len(argv) < 2:
-        errors.append(
-            "You must provide an instance id to create an investigation, {} [instance id]"
-            .format(argv[0]))
-
-    if "INVESTIGATION_BUCKET" not in environ:
-        errors.append(
-            "INVESTIGATION_BUCKET must be set, export INVESTIGATION_BUCKET=[bucket]"
-        )
-
-    if len(errors):
-        print(errors)
-        exit(1)
-
-    resp = InvestigationCreationService().create_investigation(
-        argv[1], {"details": "Manually triggered"})
-
-    print(to_json(resp))
-
-
-if __name__ == "__main__":
-    main()
+    return creator.create_investigation_from_alert(event)

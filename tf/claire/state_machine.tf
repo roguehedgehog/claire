@@ -16,7 +16,7 @@ data "template_file" "claire_acquisition_state_machine" {
     poll_evidence_extractor      = aws_lambda_function.poll_evidence_extractor.arn
     prepare_memory_volume        = aws_lambda_function.prepare_memory_volume.arn
     capture_memory               = aws_lambda_function.capture_memory.arn
-    upload_memory                = aws_lambda_function.upload_memory.arn
+    memory_analysis              = aws_lambda_function.memory_analysis.arn
     is_command_complete          = aws_lambda_function.is_command_complete.arn
     isolate_instance             = aws_lambda_function.isolate_instance.arn
     snapshot_volumes             = aws_lambda_function.snapshot_volumes.arn

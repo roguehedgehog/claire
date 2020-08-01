@@ -1,7 +1,7 @@
 data "archive_file" "lambda_zip" {
   type        = "zip"
   output_path = "./dist/lambdas.zip"
-  source_dir  = "../../bin/ir"
+  source_dir  = "./lambda"
 }
 
 resource "aws_lambda_function" "create_investigation" {
@@ -211,9 +211,9 @@ resource "aws_lambda_function" "capture_memory" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
-resource "aws_lambda_function" "upload_memory" {
-  function_name = "claire_upload_memory"
-  handler       = "extract_memory.lambda_upload_memory"
+resource "aws_lambda_function" "memory_analysis" {
+  function_name = "claire_memory_analysis"
+  handler       = "extract_memory.lambda_memory_analysis"
   role          = module.run_ssm_command_role.arn
 
   environment {

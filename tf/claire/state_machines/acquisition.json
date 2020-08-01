@@ -164,7 +164,7 @@
                         },
                         "RunMemoryAnalysis": {
                             "Type": "Task",
-                            "Resource": "${upload_memory}",
+                            "Resource": "${memory_analysis}",
                             "Next": "WaitRunMemoryAnalysis"
                         },
                         "WaitRunMemoryAnalysis": {

@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
 
-from boto3 import client
-from investigation_logger import get_logger, CLAIRE
-from get_instance import InstanceService
 from functools import reduce
-from sys import argv
-from json import dumps
+
+from boto3 import client
+
+from instance import InstanceService
+from investigation_logger import CLAIRE
 
 
 class SnapshotCreationService:
@@ -63,7 +63,7 @@ class SnapshotCreationService:
         return resp["SnapshotId"]
 
 
-def lambda_snapshot_handler(event: object, context: object):
+def lambda_snapshot_handler(event: object, _):
     snapper = SnapshotCreationService(event["investigation_id"])
     event["snapshot_ids"] = snapper.snapshot_volumes(event["investigation_id"])
     event["is_ready"] = False
@@ -71,21 +71,8 @@ def lambda_snapshot_handler(event: object, context: object):
     return event
 
 
-def lambda_snapshot_ready_handler(event, context):
+def lambda_snapshot_ready_handler(event, _):
     snapper = SnapshotCreationService(event["investigation_id"])
     event["is_ready"] = snapper.is_snapshot_complete(event["snapshot_ids"])
 
     return event
-
-
-def main():
-    if len(argv) < 2:
-        print("Usage: {} [investigation_id]".format(argv[0]))
-        exit(1)
-
-    snapper = SnapshotCreationService(argv[1])
-    snapper.snapshot_volumes(argv[1])
-
-
-if __name__ == "__main__":
-    main()

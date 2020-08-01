@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 
-from boto3 import client
-from investigation_logger import get_logger, to_json, log_to_console
-from get_instance import InstanceService
-from sys import argv
-from os import environ
-from pathlib import Path
-from time import sleep
+from dataclasses import asdict, dataclass
 from functools import reduce
-from dataclasses import dataclass, asdict
+
+from boto3 import client
+
+from instance import InstanceService
+from investigation_logger import get_logger
 
 
 @dataclass
@@ -94,10 +92,11 @@ class ManageVolumesService:
             self.logger("Delete volume request complete {}".format(resp))
 
 
-def lambda_create_volumes(event: object, context: object):
-    id = event["investigation_id"]
-    mvs = ManageVolumesService(id)
-    extractor = InstanceService(id).get_extractor_instance(id)
+def lambda_create_volumes(event: object, _):
+    investigation_id = event["investigation_id"]
+    mvs = ManageVolumesService(investigation_id)
+    extractor = InstanceService(investigation_id).get_extractor_instance(
+        investigation_id)
 
     event["volumes"] = mvs.create_volumes(
         event["snapshot_ids"], extractor["Placement"]["AvailabilityZone"])
@@ -112,7 +111,7 @@ def lambda_create_volumes(event: object, context: object):
     return event
 
 
-def lambda_detach_volumes(event: object, context: object):
+def lambda_detach_volumes(event: object, _):
     mvs = ManageVolumesService(event["data"]["investigation_id"])
     mvs.detach_volumes(event["data"]["instance_from"],
                        event["data"]["volumes"])
@@ -121,14 +120,14 @@ def lambda_detach_volumes(event: object, context: object):
     return event
 
 
-def lambda_is_detach_complete(event: object, context: object):
+def lambda_is_detach_complete(event: object, _):
     mvs = ManageVolumesService(event["data"]["investigation_id"])
     event["is_ready"] = mvs.is_status(event["data"]["volumes"], "available")
 
     return event
 
 
-def lambda_attach_volumes(event: object, context: object):
+def lambda_attach_volumes(event: object, _):
     mvs = ManageVolumesService(event["data"]["investigation_id"])
     mvs.attach_volumes(event["data"]["instance_to"], event["data"]["volumes"])
 
@@ -137,66 +136,15 @@ def lambda_attach_volumes(event: object, context: object):
     return event
 
 
-def lambda_is_attach_complete(event: object, context: object):
+def lambda_is_attach_complete(event: object, _):
     mvs = ManageVolumesService(event["data"]["investigation_id"])
     event["is_ready"] = mvs.is_status(event["data"]["volumes"], "in-use")
 
     return event
 
 
-def lambda_destroy_volumes(event: object, context: object):
+def lambda_destroy_volumes(event: object, _):
     mvs = ManageVolumesService(event["data"]["investigation_id"])
     mvs.destroy_volumes(event["data"]["volumes"])
 
     return event
-
-
-def move_volumes(event, context):
-    if event["data"]["instance_from"]:
-        event = lambda_detach_volumes(event, context)
-
-    while event["is_ready"] is False:
-        sleep(5)
-        event = lambda_is_detach_complete(event, context)
-
-    if event["data"]["instance_to"] is None:
-        lambda_destroy_volumes(event, context)
-        return
-
-    event = lambda_attach_volumes(event, context)
-    while event["is_ready"] is False:
-        sleep(5)
-        event = lambda_is_attach_complete(event, context)
-
-    return event
-
-
-def main():
-    log_to_console()
-    try:
-        ins = InstanceService(argv[1])
-        event = {
-            "investigation_id": argv[1],
-            "memory_volume_id": argv[2],
-            "instance_id": ins.get_instance(argv[1])["InstanceId"],
-            "extractor_id": ins.get_instance(argv[1], "Worker")["InstanceId"],
-        }
-        event["data"] = MoveVolumesRequst(
-            argv[1],
-            [{
-                "volume_id": argv[2],
-                "device": "/dev/xvdm"
-            }],
-            event["extractor_id"],
-            event["instance_id"],
-        ).asdict()
-
-    except IndexError:
-        print("Usage {} [investigation_id] [volume_id]".format(argv[0]))
-        return 1
-
-    move_volumes(event, {})
-
-
-if __name__ == "__main__":
-    main()

@@ -1,14 +1,13 @@
 #!/usr/bin/env python3
 
+from os import environ
+
 from boto3 import client
-from investigation_logger import get_logger, to_json, log_to_console
-from get_instance import InstanceService
+
+from instance import InstanceService
+from investigation_logger import get_logger
 from manage_volumes import MoveVolumesRequst
 from terminate_instance import terminate_instance
-from sys import argv
-from os import environ
-from pathlib import Path
-from time import sleep
 
 
 def create_extractor_instance(investagtion_id: str):
@@ -71,7 +70,7 @@ def poll_extractor(investigation_id: str, instance_id: str):
     return resp["Reservations"][0]["Instances"][0]
 
 
-def lambda_handler(event: object, context):
+def lambda_handler(event: object, _):
     instance = create_extractor_instance(event["investigation_id"])
     return {
         **event,
@@ -82,7 +81,7 @@ def lambda_handler(event: object, context):
     }
 
 
-def lambda_is_extractor_ready(event: object, context):
+def lambda_is_extractor_ready(event: object, _):
     instance = poll_extractor(event["investigation_id"], event["extractor_id"])
 
     event["is_ready"] = instance['State']["Name"] == "running"
@@ -105,37 +104,7 @@ def lambda_is_extractor_ready(event: object, context):
     return event
 
 
-def lambda_terminate_extractor(event: object, context):
+def lambda_terminate_extractor(event: object, _):
     terminate_instance(event[0]["investigation_id"], event[0]["extractor_id"])
 
     return event
-
-
-def main():
-
-    log_to_console()
-    try:
-        event = {
-            "investigation_id":
-            argv[1],
-            "instance_id":
-            InstanceService(argv[1]).get_instance(argv[1])["InstanceId"]
-        }
-        environ["IAM_PROFILE"] = argv[2]
-        environ["SECURITY_GROUP_ID"] = argv[3]
-    except IndexError:
-        print(
-            "Usage {} [investigation_id] [iam_profile_arn] [security_group_id]"
-            .format(argv[0]))
-        return 1
-
-    event = lambda_handler(event, {})
-    while event["is_ready"] is False:
-        sleep(5)
-        event = lambda_is_extractor_ready(event, {})
-
-    print(to_json(event))
-
-
-if __name__ == "__main__":
-    main()

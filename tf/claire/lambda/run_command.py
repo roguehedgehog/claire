@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 
 from boto3 import client
-from investigation_logger import get_logger, to_json, log_to_console
+
+from investigation_logger import get_logger
 
 
 def get_command_status(investigation_id: str, instance_id: str,
@@ -13,12 +14,12 @@ def get_command_status(investigation_id: str, instance_id: str,
         InstanceId=instance_id,
         CommandId=command_id,
     )
-    log("Command {} status returned {}".format(command_id, resp))
+    log("Command {} status returned {}".format(command_id, resp["Status"]))
 
     return resp["Status"]
 
 
-def lambda_is_command_complete(event: object, context: object):
+def lambda_is_command_complete(event: object, _):
     event["command_status"] = get_command_status(
         event["investigation_id"],
         event["running_command_instance"],
@@ -28,7 +29,7 @@ def lambda_is_command_complete(event: object, context: object):
         "Pending", "Delayed", "InProgress"
     ]
 
-    if event["is_ready"] is True:
+    if event["is_ready"]:
         if event["command_status"] != "Success":
             raise RuntimeError("Command {}".format(event["command_status"]))
 
