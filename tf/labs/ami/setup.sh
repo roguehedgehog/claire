@@ -34,7 +34,13 @@ echo "
 		AllowOverride all
 	</Directory>
     ErrorLog \${APACHE_LOG_DIR}/error.log
-	CustomLog \${APACHE_LOG_DIR}/access.log combined
+	  CustomLog \${APACHE_LOG_DIR}/access.log combined
+
+    ProxyRequests On
+    SSLProxyEngine on
+
+    ProxyPass /news https://www.bbc.co.uk/news
+    ProxyPassReverse /news https://www.bbc.co.uk/news
 </VirtualHost>
 " > /etc/apache2/sites-available/000-default.conf
 
@@ -75,6 +81,9 @@ echo "
 
 echo "setting ownership of drupal"
 chown -R ubuntu:ubuntu /home/ubuntu/drupal-8.5.0
+
+echo "enabling proxy"
+a2enmod proxy proxy_http ssl
 
 echo "restarting apache"
 systemctl restart apache2

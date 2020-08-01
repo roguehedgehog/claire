@@ -6,7 +6,7 @@ terraform -v
 packer -v
 
 readonly LAB_AMI=$(aws ec2 describe-images \
-        --filters Name=name,Values="CLAIRE Vulnerable Lab Server" \
+        --filters Name=name,Values="CLAIRE Vulnerable Lab" \
         | jq -r .Images[0].ImageId)
 
 if [ "$LAB_AMI" != null ]; then
@@ -16,7 +16,7 @@ fi
 
 cd tf/labs/ami
 echo "Creating Vulnerable Server Image with packer"
-#packer build ami.json | tee ami_details.txt
+packer build ami.json | tee ami_details.txt
 AMI_ID=$(tail ami_details.txt \
     | grep ami \
     | awk -F ' ' '{print $2}')

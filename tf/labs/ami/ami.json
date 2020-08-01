@@ -1,7 +1,7 @@
 {
     "builders": [
         {
-            "ami_name": "Vulnerable Drupal Instance",
+            "ami_name": "CLAIRE Vulnerable Lab",
             "type": "amazon-ebs",
             "instance_type": "t2.micro",
             "source_ami_filter": {
@@ -26,14 +26,14 @@
         },
         {
             "type": "file",
-            "source": "./install-vuln-drupal.sh",
-            "destination": "/tmp/install-vuln-drupal.sh"
+            "source": "./setup.sh",
+            "destination": "/tmp/setup.sh"
         },
         {
             "type": "shell",
             "inline": [
-                "chmod +x /tmp/install-vuln-drupal.sh",
-                "sudo /tmp/install-vuln-drupal.sh"
+                "chmod +x /tmp/setup.sh",
+                "sudo /tmp/setup.sh"
             ]
         }
     ]
