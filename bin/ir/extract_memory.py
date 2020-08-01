@@ -57,7 +57,7 @@ class MemoryCaptureService:
                 "commands": [
                     "sudo mkdir -p /mnt/mem",
                     "sudo mount /dev/xvdm /mnt/mem",
-                    "sudo /mnt/mem/memory/avml --compress /mnt/mem/memory/memory.lime",
+                    "sudo /mnt/mem/avml --compress /mnt/mem/memory.lime.compressed",
                     "sudo umount /mnt/mem",
                 ]
             },
@@ -77,7 +77,7 @@ class MemoryCaptureService:
             TimeoutSeconds=3600,
             Parameters={
                 "commands": [
-                    "sudo memory_upload.sh /dev/xvdm 's3://{}/{}/memory/'".
+                    "sudo memory_analysis.sh /dev/xvdm 's3://{}/{}/memory/'".
                     format(
                         bucket,
                         investigation_id,

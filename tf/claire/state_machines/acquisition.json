@@ -159,25 +159,25 @@
                                     "AWS_STEP_FUNCTIONS_STARTED_BY_EXECUTION_ID.$": "$$.Execution.Id"
                                 }
                             },
-                            "Next": "UploadMemoryCapture",
+                            "Next": "RunMemoryAnalysis",
                             "ResultPath": null
                         },
-                        "UploadMemoryCapture": {
+                        "RunMemoryAnalysis": {
                             "Type": "Task",
                             "Resource": "${upload_memory}",
-                            "Next": "WaitUploadMemoryCapture"
+                            "Next": "WaitRunMemoryAnalysis"
                         },
-                        "WaitUploadMemoryCapture": {
+                        "WaitRunMemoryAnalysis": {
                             "Type": "Wait",
                             "Seconds": 10,
-                            "Next": "PollUploadMemoryCapture"
+                            "Next": "PollRunMemoryAnalysis"
                         },
-                        "PollUploadMemoryCapture": {
+                        "PollRunMemoryAnalysis": {
                             "Type": "Task",
                             "Resource": "${is_command_complete}",
-                            "Next": "IsUploadMemoryCapture"
+                            "Next": "IsRunMemoryAnalysis"
                         },
-                        "IsUploadMemoryCapture": {
+                        "IsRunMemoryAnalysis": {
                             "Type": "Choice",
                             "Choices": [
                                 {
@@ -186,7 +186,7 @@
                                     "Next": "DetachAndDeleteVolume"
                                 }
                             ],
-                            "Default": "WaitUploadMemoryCapture"
+                            "Default": "WaitRunMemoryAnalysis"
                         },
                         "DetachAndDeleteVolume": {
                             "Type": "Task",

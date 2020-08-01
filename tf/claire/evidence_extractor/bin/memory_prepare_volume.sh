@@ -3,11 +3,11 @@
 set -euo pipefail
 
 readonly DEVICE="${1}"
+readonly DEST=/mnt/mem
 
 mkfs -t ext4 "${DEVICE}"
-mount "${DEVICE}" /mnt/mem
+mount "${DEVICE}" "${DEST}"
 
-mkdir /mnt/mem/memory
-cp /home/ubuntu/bin/avml /mnt/mem/memory/
+cp /home/ubuntu/bin/avml "${DEST}"
 
-umount /mnt/mem
+umount "${DEST}"

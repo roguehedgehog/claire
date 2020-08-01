@@ -25,6 +25,11 @@
             "destination": "/home/ubuntu"
         },
         {
+            "type": "file",
+            "source": "./profiles",
+            "destination": "/home/ubuntu/profiles"
+        },
+        {
             "type": "shell",
             "script": "./setup.sh"
         }

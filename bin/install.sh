@@ -5,6 +5,15 @@ set -euo pipefail
 terraform -v
 packer -v
 
+readonly CLAIRE_AMI=$(aws ec2 describe-images \
+        --filters Name=name,Values="CLAIRE Evidence Extractor" \
+        | jq -r .Images[0].ImageId)
+
+if [ "$CLAIRE_AMI" != null ]; then
+    echo "Removing existing extractor AMI ${CLAIRE_AMI}"
+    aws ec2 deregister-image --image-id "$CLAIRE_AMI"
+fi
+
 cd tf/claire/evidence_extractor
 echo "Creating Evidence Extractor Image with packer"
 packer build ami.json | tee ami_details.txt
