@@ -1,5 +1,5 @@
 resource "aws_s3_bucket" "attacker_bucket" {
-  bucket = substr("${var.prefix}-lab-attacker-bucket-${uuid()}", 0, 63)
+  bucket = substr("${var.prefix}-lab-attacker-bucket-${random_id.attacker_bucket.hex}", 0, 63)
   acl    = "public-read-write"
 
   lifecycle_rule {
@@ -8,6 +8,10 @@ resource "aws_s3_bucket" "attacker_bucket" {
       days = 1
     }
   }
+}
+
+resource "random_id" "attacker_bucket" {
+  byte_length = 8
 }
 
 resource "aws_s3_bucket" "target_bucket" {

@@ -8,15 +8,15 @@ while [ ! -f /var/lib/cloud/instance/boot-finished ]; do echo 'Waiting for cloud
 
 cd /home/ubuntu 
 
-apt update -o Acquire::Check-Valid-Until=false
-
+apt update 
 apt install --yes \
-apache2 \
-mysql-server \
-php7.2 \
-php7.2-mysql \
-php7.2-xml \
-php7.2-gd
+  apache2 \
+  libapache2-mod-security2 \
+  mysql-server \
+  php7.2 \
+  php7.2-mysql \
+  php7.2-xml \
+  php7.2-gd
 
 wget https://ftp.drupal.org/files/projects/drupal-8.5.0.tar.gz
 tar xvf drupal-8.5.0.tar.gz
@@ -24,9 +24,10 @@ tar xvf drupal-8.5.0.tar.gz
 echo "Creating symlink"
 ln -s /home/ubuntu/drupal-8.5.0 /var/www/vuln-drupal
 
-echo "Creating Virtual Host"
+echo "Creating Virtual Hosts"
 echo "
 <VirtualHost *:80>
+    SecRuleEngine Off
     DocumentRoot /var/www/vuln-drupal
     <Directory /var/www>
 		Allow from all
@@ -35,23 +36,39 @@ echo "
 	</Directory>
     ErrorLog \${APACHE_LOG_DIR}/error.log
 	  CustomLog \${APACHE_LOG_DIR}/access.log combined
+</VirtualHost>
+
+<VirtualHost *:81>
+    SecRuleEngine On
+    ErrorLog \${APACHE_LOG_DIR}/error.log
+    CustomLog \${APACHE_LOG_DIR}/access.log combined
 
     ProxyRequests On
     SSLProxyEngine on
 
-    ProxyPass /news https://www.bbc.co.uk/news
-    ProxyPassReverse /news https://www.bbc.co.uk/news
+    ProxyPass / https://www.royalholloway.ac.uk/
+    ProxyPassReverse / https://www.royalholloway.ac.uk/
 </VirtualHost>
 " > /etc/apache2/sites-available/000-default.conf
 
+echo "Setting up proxy"
+echo -e "\nListen 81" > /etc/apache2/ports.conf
+echo 'Mutex file:${APACHE_LOCK_DIR} default' > /etc/apache2/conf-available/mutex-file.conf
 
-echo "Setting apache user"
+a2enconf mutex-file
+a2enmod proxy proxy_http ssl
+
+echo "Setting up modsecurity"
+cp /etc/modsecurity/modsecurity.conf{-recommended,}
+sed -i -e 's/DetectionOnly$/On/i' /etc/modsecurity/modsecurity.conf
+
+echo "Setting insecure apache user"
 echo "
 export APACHE_RUN_USER=ubuntu
 export APACHE_RUN_GROUP=ubuntu
 " >> /etc/apache2/envvars
 
-echo "creating mysql database and user"
+echo "Creating mysql database and user"
 mysql <<EOF
 CREATE DATABASE vuln_app;
 CREATE USER vuln_app@localhost IDENTIFIED BY 'vuln_app';
@@ -59,7 +76,7 @@ GRANT ALL PRIVILEGES ON vuln_app.* TO vuln_app@localhost;
 FLUSH PRIVILEGES;
 EOF
 
-echo "setting drupal settings"
+echo "Setting drupal settings"
 cp drupal-8.5.0/sites/default/{default.settings,settings}.php
 mkdir -p drupal-8.5.0/sites/default/files/config_123/sync
 
@@ -79,11 +96,8 @@ echo "
 \$settings['hash_salt'] = '123';
 " >> drupal-8.5.0/sites/default/settings.php
 
-echo "setting ownership of drupal"
+echo "Setting ownership of drupal"
 chown -R ubuntu:ubuntu /home/ubuntu/drupal-8.5.0
-
-echo "enabling proxy"
-a2enmod proxy proxy_http ssl
 
 echo "restarting apache"
 systemctl restart apache2
