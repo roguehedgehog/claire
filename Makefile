@@ -1,4 +1,6 @@
-.PHONY install:
+.PHONY: install update install-labs update-labs
+
+install:
 	./bin/install.sh
 
 update:
@@ -8,4 +10,4 @@ install-labs:
 	./bin/install-labs.sh
 
 update-labs:
-	cd tf/labs/vuln-app && terraform apply -auto-approve
+	cd tf/labs && terraform apply -auto-approve

@@ -27,7 +27,29 @@ data "aws_iam_policy" "AmazonEc2RoleForSSM" {
   arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
 }
 
-resource "aws_iam_role_policy_attachment" "evidence_extractor_ssm_access" {
+resource "aws_iam_role_policy_attachment" "lab_ssm_access" {
   role       = aws_iam_role.lab_role.id
   policy_arn = data.aws_iam_policy.AmazonEc2RoleForSSM.arn
+}
+
+data "aws_iam_policy_document" "allow_all_s3_access" {
+  statement {
+    effect = "Allow"
+    actions = [
+      "s3:*"
+    ]
+    resources = [
+      "${aws_s3_bucket.target_bucket.arn}/*"
+    ]
+  }
+}
+
+resource "aws_iam_policy" "allow_all_s3_access_policy" {
+  name   = "claire_lab_allow_s3_access_policy"
+  policy = data.aws_iam_policy_document.allow_all_s3_access.json
+}
+
+resource "aws_iam_role_policy_attachment" "lab_s3_access" {
+  role       = aws_iam_role.lab_role.id
+  policy_arn = aws_iam_policy.allow_all_s3_access_policy.arn
 }

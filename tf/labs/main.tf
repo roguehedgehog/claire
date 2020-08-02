@@ -33,7 +33,7 @@ resource "aws_security_group" "vuln_group" {
   ingress {
     protocol    = "tcp"
     from_port   = 80
-    to_port     = 80
+    to_port     = 81
     cidr_blocks = ["${chomp(data.http.my_external_ip.body)}/32"]
   }
 
