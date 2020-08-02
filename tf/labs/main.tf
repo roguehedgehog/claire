@@ -8,20 +8,23 @@ provider "aws" {
 }
 
 resource "aws_instance" "lab" {
-  count                  = var.lab_count
-  ami                    = var.lab_ami_id
-  instance_type          = var.instance_type
-  key_name               = var.key_name
-  vpc_security_group_ids = [aws_security_group.vuln_group.id]
-  iam_instance_profile   = aws_iam_instance_profile.lab_profile.name
+  count                       = var.lab_count
+  ami                         = var.lab_ami_id
+  instance_type               = var.instance_type
+  key_name                    = var.key_name
+  subnet_id                   = aws_subnet.lab_subnet.id
+  vpc_security_group_ids      = [aws_security_group.lab_security_group.id]
+  iam_instance_profile        = aws_iam_instance_profile.lab_profile.name
+  associate_public_ip_address = true
   tags = {
     Name = "CLAIRE Lab Vulnerable Instance"
     Lab  = "CLAIRE"
   }
 }
 
-resource "aws_security_group" "vuln_group" {
-  name = "vuln_security_group"
+resource "aws_security_group" "lab_security_group" {
+  name   = "clare_lab_security_group"
+  vpc_id = aws_vpc.lab_vpc.id
 
   ingress {
     protocol    = "tcp"

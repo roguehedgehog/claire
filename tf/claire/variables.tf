@@ -1,9 +1,17 @@
-variable aws_profile {
+variable "aws_profile" {
   default = "default"
 }
 
-variable aws_region {
+variable "aws_region" {
   type = string
+}
+
+variable "vpc_id" {
+  type = string
+}
+
+variable "allowed_cidr_when_lockeddown" {
+  type = list(string)
 }
 
 variable "prefix" {

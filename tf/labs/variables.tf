@@ -10,6 +10,14 @@ variable "prefix" {
   type = string
 }
 
+variable "lab_cidr" {
+  default = "10.99.0.0/20"
+}
+
+variable "lab_availability_zone" {
+  default = "eu-west-2b"
+}
+
 variable "lab_count" {
   default = 1
 }

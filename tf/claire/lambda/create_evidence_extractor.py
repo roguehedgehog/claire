@@ -17,14 +17,19 @@ def create_extractor_instance(investagtion_id: str):
     volumes = instance_service.get_volumes(instance)
     memory_size = instance_service.get_memory_size(instance)
     instance_service.logger("Creating extractor instance")
+    subnet = instance["NetworkInterfaces"][0]["SubnetId"]
     extractor = ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
         InstanceType="t2.small",
         MinCount=1,
         MaxCount=1,
         InstanceInitiatedShutdownBehavior="terminate",
-        SubnetId=instance["NetworkInterfaces"][0]["SubnetId"],
-        KeyName="vuln-app-key",
+        NetworkInterfaces=[{
+            "AssociatePublicIpAddress": True,
+            "DeleteOnTermination": True,
+            "DeviceIndex": 0,
+            "SubnetId": subnet
+        }],
         BlockDeviceMappings=[{
             "DeviceName": "/dev/sda1",
             "Ebs": {

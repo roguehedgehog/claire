@@ -52,7 +52,7 @@ echo "
 " > /etc/apache2/sites-available/000-default.conf
 
 echo "Setting up proxy"
-echo -e "\nListen 81" > /etc/apache2/ports.conf
+echo -e "\nListen 81" >> /etc/apache2/ports.conf
 echo 'Mutex file:${APACHE_LOCK_DIR} default' > /etc/apache2/conf-available/mutex-file.conf
 
 a2enconf mutex-file

@@ -64,14 +64,14 @@ def run_memory_analysis(investigation_id: str, instance_id: str, bucket: str):
         TimeoutSeconds=3600,
         Parameters={
             "commands": [
-                "sudo memory_analysis.sh /dev/xvdm 's3://{}/{}/memory'".format(
+                "sudo memory_analysis.sh /dev/xvdm 's3://{}/{}'".format(
                     bucket,
                     investigation_id,
                 )
             ]
         },
         OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
-        OutputS3KeyPrefix="{}/cmd/upload-memory".format(investigation_id),
+        OutputS3KeyPrefix="{}/cmd/memory-analysis".format(investigation_id),
     )
 
     return resp["Command"]["CommandId"]

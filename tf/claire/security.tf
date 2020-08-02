@@ -1,18 +1,20 @@
 resource "aws_security_group" "locked_down" {
   name        = "CLAIRE Locked Down"
-  description = "Instances assigned to this group cannot communicate on the network"
+  vpc_id      = var.vpc_id
+  description = "Instances should only be able to communicate with SSM"
 
   egress {
     from_port   = 443
     to_port     = 443
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = var.allowed_cidr_when_lockeddown
   }
 }
 
 resource "aws_security_group" "egress_only" {
   name        = "CLAIRE Investigator"
-  description = "To allow investigator services to talk to S3 and the internet"
+  vpc_id      = var.vpc_id
+  description = "To allow investigator services to talk to the internet"
 
   egress {
     from_port   = 0

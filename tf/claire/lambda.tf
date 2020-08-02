@@ -71,6 +71,7 @@ resource "aws_lambda_function" "create_evidence_extractor" {
     variables = {
       IAM_PROFILE      = aws_iam_instance_profile.claire_ec2_evidence_extractor_profile.arn
       EXTRACTOR_AMI_ID = var.evidence_extractor_ami_id
+      SECURITY_GROUP   = aws_security_group.egress_only.id
     }
   }
 
