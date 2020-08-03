@@ -1,23 +1,29 @@
 variable "aws_profile" {
-  default = "default"
+  description = "The AWS Profile to use to deploy CLAIRE"
+  default     = "default"
 }
 
 variable "aws_region" {
-  type = string
+  description = "The AWS region to use to the deploy CLAIRE"
+  type        = string
 }
 
 variable "vpc_id" {
-  type = string
+  description = "The VPC to be used to create security groups"
+  type        = string
 }
 
 variable "allowed_cidr_when_lockeddown" {
-  type = list(string)
+  description = "If SSM VPC endpoints are enabled this can be the VPC CIDR otherwise 0.0.0.0/0"
+  type        = list(string)
 }
 
 variable "prefix" {
-  type = string
+  description = "The prefix for s3 buckets (for uniqueness)"
+  type        = string
 }
 
 variable "evidence_extractor_ami_id" {
-  type = string
+  description = "The Evidence Extractor AMI created by packer"
+  type        = string
 }

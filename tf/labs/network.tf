@@ -39,57 +39,61 @@ resource "aws_route_table_association" "lab_route_assoc" {
   route_table_id = aws_route_table.lab_route_table.id
 }
 
-resource "aws_vpc_endpoint" "s3" {
-  vpc_id       = aws_vpc.lab_vpc.id
-  service_name = "com.amazonaws.${var.aws_region}.s3"
-}
-
-resource "aws_vpc_endpoint_route_table_association" "s3" {
-  route_table_id  = aws_route_table.lab_route_table.id
-  vpc_endpoint_id = aws_vpc_endpoint.s3.id
-}
-
 resource "aws_vpc_endpoint" "ssm" {
+  count = var.create_vpc_endpoints
+
   vpc_id              = aws_vpc.lab_vpc.id
   service_name        = "com.amazonaws.${var.aws_region}.ssm"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint_subnet_association" "ssm" {
-  vpc_endpoint_id = aws_vpc_endpoint.ssm.id
+  count = var.create_vpc_endpoints
+
+  vpc_endpoint_id = aws_vpc_endpoint.ssm[0].id
   subnet_id       = aws_subnet.lab_subnet.id
 }
 
 resource "aws_vpc_endpoint" "ec2messages" {
+  count = var.create_vpc_endpoints
+
   vpc_id              = aws_vpc.lab_vpc.id
   service_name        = "com.amazonaws.${var.aws_region}.ec2messages"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint_subnet_association" "ec2messages" {
-  vpc_endpoint_id = aws_vpc_endpoint.ec2messages.id
+  count = var.create_vpc_endpoints
+
+  vpc_endpoint_id = aws_vpc_endpoint.ec2messages[0].id
   subnet_id       = aws_subnet.lab_subnet.id
 }
 
 resource "aws_vpc_endpoint" "ssmmessages" {
+  count = var.create_vpc_endpoints
+
   vpc_id              = aws_vpc.lab_vpc.id
   service_name        = "com.amazonaws.${var.aws_region}.ssmmessages"
   vpc_endpoint_type   = "Interface"
-  security_group_ids  = [aws_security_group.vpc_endpoint_sg.id]
+  security_group_ids  = [aws_security_group.vpc_endpoints[0].id]
   private_dns_enabled = true
 }
 
 resource "aws_vpc_endpoint_subnet_association" "ssmmessages" {
-  vpc_endpoint_id = aws_vpc_endpoint.ssmmessages.id
+  count = var.create_vpc_endpoints
+
+  vpc_endpoint_id = aws_vpc_endpoint.ssmmessages[0].id
   subnet_id       = aws_subnet.lab_subnet.id
 }
 
-resource "aws_security_group" "vpc_endpoint_sg" {
-  name   = "clare_lab_vpc_endpoint_sg"
+resource "aws_security_group" "vpc_endpoints" {
+  count = var.create_vpc_endpoints
+
+  name   = "clare_lab_vpc_endpoints"
   vpc_id = aws_vpc.lab_vpc.id
 
   ingress {

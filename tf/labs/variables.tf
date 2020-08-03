@@ -14,6 +14,10 @@ variable "lab_cidr" {
   default = "10.99.0.0/20"
 }
 
+variable "create_vpc_endpoints" {
+  default = 0
+}
+
 variable "lab_availability_zone" {
   default = "eu-west-2b"
 }
