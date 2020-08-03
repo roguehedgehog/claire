@@ -71,8 +71,8 @@ install_volatility () {
     echo "Install Optional Requirements"
     wget https://bootstrap.pypa.io/get-pip.py --directory-prefix=/tmp
     sudo python /tmp/get-pip.py
-    pip install pycryptodome
-    pip install distorm3==3.4.4
+    sudo pip install pycryptodome
+    sudo pip install distorm3==3.4.4
 }
 
 

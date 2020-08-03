@@ -17,6 +17,24 @@ impl BucketRepo {
         }
     }
 
+    pub async fn get_investigations(
+        &self,
+        investigation_bucket: &str,
+    ) -> Result<Vec<Object>, Box<dyn std::error::Error>> {
+        let req = ListObjectsV2Request {
+            bucket: investigation_bucket.to_string(),
+            delimiter: Some("/".to_string()),
+            ..Default::default()
+        };
+
+        Ok(self
+            .client
+            .list_objects_v2(req)
+            .await?
+            .contents
+            .unwrap_or(vec![]))
+    }
+
     pub async fn get_evidence(
         &self,
         investigation_bucket: &str,

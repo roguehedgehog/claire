@@ -3,6 +3,7 @@ mod service;
 mod storage;
 
 use service::clear::ClearInvestigationService;
+use service::list::ListInvestigationsService;
 use service::purge::PurgeService;
 use std::io::{stdin, stdout, Write};
 
@@ -22,6 +23,18 @@ pub async fn clear_investigation(investigation_id: &str) -> Result<(), Box<dyn s
             println!("{}", resource);
         }
     }
+    Ok(())
+}
+
+pub async fn list_investigations(
+    investigation_bucket: &str,
+) -> Result<(), Box<dyn std::error::Error>> {
+    let investigations = ListInvestigationsService::new()
+        .get_investigations(investigation_bucket)
+        .await?;
+
+    println!("{:?}", investigations);
+
     Ok(())
 }
 

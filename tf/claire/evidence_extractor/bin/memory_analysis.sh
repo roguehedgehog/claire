@@ -56,9 +56,8 @@ run_analysis() {
         | grep "Profile.*Linux" \
         | awk -F ' ' '{print $1}' \
         | while read -r profile; do
-            if vol --profile="$profile" -f ${IMG} linux_banner; then
+            if ! vol --profile="$profile" -f ${IMG} linux_banner  | grep "No suitable address space"; then
                 echo "Found ${profile}"
-                run_plugins "${profile}"
                 break
             fi
         done

@@ -12,3 +12,6 @@ tokio = { version = "0.2", features = ["macros"] }
 rusoto_core = "0.44"
 rusoto_s3 = "0.44"
 rusoto_ec2 = "0.44"
+chrono = "0.4"
+failure = "0.1"
+itertools = "0.9"
