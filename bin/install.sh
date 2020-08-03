@@ -23,7 +23,7 @@ AMI_ID=$(tail ami_details.txt \
 
 cd ..
 if [ -f terraform.tfvars ]; then
-    sed -i '/evidence_extractor_ami_id/d' terraform.tfvars
+    sed -i.backup '/evidence_extractor_ami_id/d' terraform.tfvars
 fi
 echo -e "\nevidence_extractor_ami_id = \"${AMI_ID}\"" >> terraform.tfvars
 

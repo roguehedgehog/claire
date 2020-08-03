@@ -23,7 +23,7 @@ impl BucketRepo {
     ) -> Result<Vec<Object>, Box<dyn std::error::Error>> {
         let req = ListObjectsV2Request {
             bucket: investigation_bucket.to_string(),
-            delimiter: Some("/".to_string()),
+            //delimiter: Some("/".to_string()),
             ..Default::default()
         };
 
