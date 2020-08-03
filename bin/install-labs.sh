@@ -30,6 +30,7 @@ echo -e "\nlab_ami_id = \"${AMI_ID}\"" >> terraform.tfvars
 
 if [ ! -f dist/lab_key ]; then
     echo "Generating keypair for labs in tf/labs/ami/dist/lab_key"
+    mkdir -p dist
     ssh-keygen -q -N '' -t rsa -b 4096 -f dist/lab_key
 fi
 
