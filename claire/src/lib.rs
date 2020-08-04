@@ -32,8 +32,13 @@ pub async fn list_investigations(
     let investigations = ListInvestigationsService::new()
         .get_investigations(investigation_bucket)
         .await?;
-
-    println!("{:?}", investigations);
+    if investigations.is_empty() {
+        println!("There are no investigations")
+    } else {
+        for investigation in investigations {
+            println!("{}", investigation.bucket)
+        }
+    }
 
     Ok(())
 }
