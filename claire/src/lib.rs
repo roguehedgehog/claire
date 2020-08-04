@@ -105,17 +105,24 @@ pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> 
 
     println!("Investigation started: {}", execution_id);
     let mut refresh = true;
+    let mut previous_status = String::new();
     let finished_status = ["ExecutionAborted", "ExecutionFailed", "ExecutionSucceeded"];
 
     while refresh {
         let investigation = service.status(&execution_id).await?;
-
-        println!(
-            "{} {} {}",
-            Utc::now(),
+        let current_status = format!(
+            "{} {}",
             investigation.status,
             investigation.get_task_name()?
         );
+
+        if current_status == previous_status {
+            print!(".");
+        } else {
+            print!("\n{} {}", Utc::now(), current_status);
+            previous_status = current_status;
+        }
+        if std::io::stdout().flush().is_err() {}
 
         refresh = match finished_status
             .iter()
@@ -126,7 +133,7 @@ pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> 
         };
 
         if refresh {
-            std::thread::sleep(std::time::Duration::from_secs(3))
+            std::thread::sleep(std::time::Duration::from_secs(1))
         } else if investigation.status == "ExecutionFailed" {
             println!(
                 "Execution Failed with:\n{}",
