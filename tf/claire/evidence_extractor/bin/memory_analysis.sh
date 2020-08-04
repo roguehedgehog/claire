@@ -58,6 +58,7 @@ run_analysis() {
         | while read -r profile; do
             if ! vol --profile="$profile" -f ${IMG} linux_banner  | grep "No suitable address space"; then
                 echo "Found ${profile}"
+                run_plugins "${profile}"
                 break
             fi
         done
