@@ -1,6 +1,6 @@
 extern crate rusoto_core;
 extern crate rusoto_ec2;
-
+use anyhow::Result;
 use rusoto_core::Region;
 use rusoto_ec2::{
     DeleteTagsRequest, DescribeTagsRequest, Ec2, Ec2Client, Filter, Tag, TagDescription,
@@ -17,11 +17,7 @@ impl TagRepo {
         }
     }
 
-    pub async fn get_resources(
-        &self,
-        tag_key: &str,
-        tag_value: &str,
-    ) -> Result<Vec<Resource>, Box<dyn std::error::Error>> {
+    pub async fn get_resources(&self, tag_key: &str, tag_value: &str) -> Result<Vec<Resource>> {
         let req = DescribeTagsRequest {
             filters: Some(vec![Filter {
                 name: Some(format!("tag:{}", tag_key)),
@@ -40,11 +36,7 @@ impl TagRepo {
         Ok(resources)
     }
 
-    pub async fn delete_tags(
-        &self,
-        resources: &Vec<Resource>,
-        tags: &Vec<&str>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn delete_tags(&self, resources: &Vec<Resource>, tags: &Vec<&str>) -> Result<()> {
         let tags = tags
             .iter()
             .map(|name| Tag {

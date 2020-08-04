@@ -2,16 +2,21 @@
 extern crate clap;
 extern crate tokio;
 
-use claire::{clear_investigation, list_investigations, purge_investigation};
+use anyhow::Result;
+use claire::{clear_investigation, list_investigations, purge_investigation, start_investigation};
 use clap::{App, Arg, ArgMatches, SubCommand};
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<()> {
     let app = create_app();
     let args = app.get_matches();
 
     if let Some(args) = args.subcommand_matches("clear") {
         return clear_investigation(argvalue(args, "investigation_id")).await;
+    }
+
+    if let Some(args) = args.subcommand_matches("investigate") {
+        return start_investigation(argvalue(args, "instance_id"), argvalue(args, "reason")).await;
     }
 
     if let Some(args) = args.subcommand_matches("list") {
@@ -44,8 +49,23 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
-        .subcommand(SubCommand::with_name("list").arg(&bucket))
         .subcommand(SubCommand::with_name("clear").arg(&id))
+        .subcommand(
+            SubCommand::with_name("investigate")
+                .arg(
+                    Arg::with_name("instance_id")
+                        .required(true)
+                        .takes_value(true)
+                        .help("The instance to investigate"),
+                )
+                .arg(
+                    Arg::with_name("reason")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The reason for the investigation"),
+                ),
+        )
+        .subcommand(SubCommand::with_name("list").arg(&bucket))
         .subcommand(SubCommand::with_name("purge").arg(&bucket).arg(&id))
 }
 

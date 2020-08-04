@@ -1,6 +1,7 @@
 extern crate rusoto_core;
 extern crate rusoto_s3;
 
+use anyhow::Result;
 use rusoto_core::Region;
 use rusoto_s3::{
     CommonPrefix, Delete, DeleteObjectsRequest, ListObjectsV2Request, Object, ObjectIdentifier,
@@ -21,7 +22,7 @@ impl BucketRepo {
     pub async fn get_investigations(
         &self,
         investigation_bucket: &str,
-    ) -> Result<Vec<CommonPrefix>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<CommonPrefix>> {
         let req = ListObjectsV2Request {
             bucket: investigation_bucket.to_string(),
             delimiter: Some("/".to_string()),
@@ -41,7 +42,7 @@ impl BucketRepo {
         &self,
         investigation_bucket: &str,
         investigation_id: &str,
-    ) -> Result<Vec<Object>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<Object>> {
         let req = ListObjectsV2Request {
             bucket: investigation_bucket.to_string(),
             prefix: Some(investigation_id.to_string()),
@@ -60,7 +61,7 @@ impl BucketRepo {
         &self,
         investigation_bucket: &str,
         evidence: &Vec<Object>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         let req = DeleteObjectsRequest {
             bucket: investigation_bucket.to_string(),
             delete: Delete {

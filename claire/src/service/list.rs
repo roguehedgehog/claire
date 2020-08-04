@@ -1,6 +1,6 @@
 use crate::storage::bucket::BucketRepo;
+use anyhow::{bail, Result};
 use chrono::NaiveDateTime;
-use failure::bail;
 #[derive(Debug)]
 pub struct Investigation {
     instance_id: String,
@@ -9,7 +9,7 @@ pub struct Investigation {
 }
 
 impl Investigation {
-    pub fn new(investigation_id: &str) -> Result<Self, Box<dyn std::error::Error>> {
+    pub fn new(investigation_id: &str) -> Result<Self> {
         let details = investigation_id.split("_").collect::<Vec<&str>>();
         let dt = details[0];
         let instance_id = details[1];
@@ -35,7 +35,7 @@ impl ListInvestigationsService {
     pub async fn get_investigations(
         &self,
         investigation_bucket: &str,
-    ) -> Result<Vec<Investigation>, Box<dyn std::error::Error>> {
+    ) -> Result<Vec<Investigation>> {
         let dirs = self
             .bucket_repo
             .get_investigations(investigation_bucket)

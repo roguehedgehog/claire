@@ -1,8 +1,13 @@
+mod execute;
 mod instance;
 mod service;
 mod storage;
 
+use anyhow::Result;
+use chrono::Utc;
+use serde_json::to_string_pretty;
 use service::clear::ClearInvestigationService;
+use service::exec::ExecuteInvestigationService;
 use service::list::ListInvestigationsService;
 use service::purge::PurgeService;
 use std::io::{stdin, stdout, Write};
@@ -10,7 +15,7 @@ use std::io::{stdin, stdout, Write};
 static CLAIRE: &str = "CLAIRE";
 static INVESTIGATION_TAG_KEY: &str = "InvestigationId";
 
-pub async fn clear_investigation(investigation_id: &str) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn clear_investigation(investigation_id: &str) -> Result<()> {
     let resources = ClearInvestigationService::new()
         .clear_investigation(investigation_id)
         .await?;
@@ -26,9 +31,7 @@ pub async fn clear_investigation(investigation_id: &str) -> Result<(), Box<dyn s
     Ok(())
 }
 
-pub async fn list_investigations(
-    investigation_bucket: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn list_investigations(investigation_bucket: &str) -> Result<()> {
     let investigations = ListInvestigationsService::new()
         .get_investigations(investigation_bucket)
         .await?;
@@ -43,10 +46,7 @@ pub async fn list_investigations(
     Ok(())
 }
 
-pub async fn purge_investigation(
-    investigation_bucket: &str,
-    investigation_id: &str,
-) -> Result<(), Box<dyn std::error::Error>> {
+pub async fn purge_investigation(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
     let ps = PurgeService::new();
     let (resources, objects) = ps
         .get_resources_to_purge(investigation_bucket, investigation_id)
@@ -97,4 +97,43 @@ pub async fn purge_investigation(
 
     ps.purge_resources(investigation_bucket, &resources, &objects)
         .await
+}
+
+pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> {
+    let service = ExecuteInvestigationService::new();
+    let execution_id = service.start(instance_id, reason).await?;
+
+    println!("Investigation started: {}", execution_id);
+    let mut refresh = true;
+    let finished_status = ["ExecutionAborted", "ExecutionFailed", "ExecutionSucceeded"];
+
+    while refresh {
+        let investigation = service.status(&execution_id).await?;
+
+        println!(
+            "{} {} {}",
+            Utc::now(),
+            investigation.status,
+            investigation.get_task_name()?
+        );
+
+        refresh = match finished_status
+            .iter()
+            .position(|s| s == &investigation.status)
+        {
+            Some(_) => false,
+            None => true,
+        };
+
+        if refresh {
+            std::thread::sleep(std::time::Duration::from_secs(3))
+        } else if investigation.status == "ExecutionFailed" {
+            println!(
+                "Execution Failed with:\n{}",
+                to_string_pretty(&investigation.details).unwrap_or(String::new())
+            )
+        }
+    }
+
+    Ok(())
 }

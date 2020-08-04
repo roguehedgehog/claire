@@ -1,6 +1,8 @@
 use crate::instance::tag::{Resource, TagRepo};
 use crate::{CLAIRE, INVESTIGATION_TAG_KEY};
 
+use anyhow::Result;
+
 pub struct ClearInvestigationService {
     tag_repo: TagRepo,
 }
@@ -12,10 +14,7 @@ impl ClearInvestigationService {
         }
     }
 
-    pub async fn clear_investigation(
-        &self,
-        investigation_id: &str,
-    ) -> Result<Vec<Resource>, Box<dyn std::error::Error>> {
+    pub async fn clear_investigation(&self, investigation_id: &str) -> Result<Vec<Resource>> {
         let resources = self
             .tag_repo
             .get_resources(INVESTIGATION_TAG_KEY, investigation_id)
@@ -30,10 +29,7 @@ impl ClearInvestigationService {
         Ok(resources)
     }
 
-    pub async fn untag_resources(
-        &self,
-        resources: &Vec<Resource>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn untag_resources(&self, resources: &Vec<Resource>) -> Result<()> {
         if resources.len() == 0 {
             return Ok(());
         }

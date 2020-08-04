@@ -4,6 +4,7 @@ use crate::instance::tag::TagRepo;
 use crate::service::clear::ClearInvestigationService;
 use crate::storage::bucket::BucketRepo;
 use crate::INVESTIGATION_TAG_KEY;
+use anyhow::Result;
 
 use rusoto_s3::Object;
 
@@ -26,7 +27,7 @@ impl PurgeService {
         &self,
         investigation_bucket: &str,
         investigation_id: &str,
-    ) -> Result<(Vec<Resource>, Vec<Object>), Box<dyn std::error::Error>> {
+    ) -> Result<(Vec<Resource>, Vec<Object>)> {
         let resources = self
             .tag_repo
             .get_resources(INVESTIGATION_TAG_KEY, investigation_id)
@@ -44,7 +45,7 @@ impl PurgeService {
         investigation_bucket: &str,
         resources: &Vec<Resource>,
         evidence: &Vec<Object>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         ClearInvestigationService::new()
             .untag_resources(resources)
             .await?;
@@ -58,7 +59,7 @@ impl PurgeService {
         &self,
         investigation_bucket: &str,
         evidence: &Vec<Object>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    ) -> Result<()> {
         if evidence.len() == 0 {
             return Ok(());
         }
@@ -69,10 +70,7 @@ impl PurgeService {
         Ok(())
     }
 
-    async fn delete_snapshots(
-        &self,
-        resources: &Vec<Resource>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    async fn delete_snapshots(&self, resources: &Vec<Resource>) -> Result<()> {
         let snapshots: Vec<String> = resources
             .iter()
             .filter(|r| r.is_snapshot())

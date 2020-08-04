@@ -1,6 +1,7 @@
 extern crate rusoto_core;
 extern crate rusoto_ec2;
 
+use anyhow::Result;
 use rusoto_core::Region;
 use rusoto_ec2::{DeleteSnapshotRequest, Ec2, Ec2Client};
 pub struct SnapshotRepo {
@@ -14,10 +15,7 @@ impl SnapshotRepo {
         }
     }
 
-    pub async fn delete_snapshots(
-        &self,
-        snapshots: &Vec<String>,
-    ) -> Result<(), Box<dyn std::error::Error>> {
+    pub async fn delete_snapshots(&self, snapshots: &Vec<String>) -> Result<()> {
         for snapshot in snapshots {
             let req = DeleteSnapshotRequest {
                 snapshot_id: snapshot.clone(),
