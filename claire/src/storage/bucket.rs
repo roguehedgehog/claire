@@ -9,24 +9,23 @@ use rusoto_s3::{
 };
 
 pub struct BucketRepo {
+    bucket: String,
     client: S3Client,
 }
 
 impl BucketRepo {
-    pub fn new() -> BucketRepo {
+    pub fn new(investigation_bucket: &str) -> BucketRepo {
         BucketRepo {
+            bucket: investigation_bucket.to_string(),
             client: S3Client::new(Region::default()),
         }
     }
 
-    pub async fn get_investigations(
-        &self,
-        investigation_bucket: &str,
-    ) -> Result<Vec<CommonPrefix>> {
+    pub async fn get_investigations(&self, prefix: Option<String>) -> Result<Vec<CommonPrefix>> {
         let req = ListObjectsV2Request {
-            bucket: investigation_bucket.to_string(),
+            bucket: self.bucket.clone(),
             delimiter: Some("/".to_string()),
-            //prefix: Some("2".to_string()),
+            prefix,
             ..Default::default()
         };
 
@@ -38,13 +37,9 @@ impl BucketRepo {
             .unwrap_or(vec![]))
     }
 
-    pub async fn get_evidence(
-        &self,
-        investigation_bucket: &str,
-        investigation_id: &str,
-    ) -> Result<Vec<Object>> {
+    pub async fn get_evidence(&self, investigation_id: &str) -> Result<Vec<Object>> {
         let req = ListObjectsV2Request {
-            bucket: investigation_bucket.to_string(),
+            bucket: self.bucket.clone(),
             prefix: Some(investigation_id.to_string()),
             ..Default::default()
         };
@@ -57,13 +52,9 @@ impl BucketRepo {
             .unwrap_or(vec![]))
     }
 
-    pub async fn delete_evidence(
-        &self,
-        investigation_bucket: &str,
-        evidence: &Vec<Object>,
-    ) -> Result<()> {
+    pub async fn delete_evidence(&self, evidence: &Vec<Object>) -> Result<()> {
         let req = DeleteObjectsRequest {
-            bucket: investigation_bucket.to_string(),
+            bucket: self.bucket.clone(),
             delete: Delete {
                 objects: evidence
                     .iter()

@@ -9,7 +9,7 @@ use rusoto_stepfunctions::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
-const CLAIRE_STATE_MACHINE: &str = "claire_acquisition";
+const CLAIRE_STATE_MACHINE: &str = "claire_investigation";
 
 #[derive(Serialize, Deserialize)]
 pub struct StartInvestigationRequest {

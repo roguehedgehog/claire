@@ -8,7 +8,7 @@ use chrono::Utc;
 use serde_json::to_string_pretty;
 use service::clear::ClearInvestigationService;
 use service::exec::ExecuteInvestigationService;
-use service::list::ListInvestigationsService;
+use service::investigation::InvestigationsService;
 use service::purge::PurgeService;
 use std::io::{stdin, stdout, Write};
 
@@ -32,8 +32,8 @@ pub async fn clear_investigation(investigation_id: &str) -> Result<()> {
 }
 
 pub async fn list_investigations(investigation_bucket: &str) -> Result<()> {
-    let investigations = ListInvestigationsService::new()
-        .get_investigations(investigation_bucket)
+    let investigations = InvestigationsService::new(investigation_bucket)
+        .get_investigations(None)
         .await?;
     if investigations.is_empty() {
         println!("There are no investigations")
@@ -47,10 +47,8 @@ pub async fn list_investigations(investigation_bucket: &str) -> Result<()> {
 }
 
 pub async fn purge_investigation(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
-    let ps = PurgeService::new();
-    let (resources, objects) = ps
-        .get_resources_to_purge(investigation_bucket, investigation_id)
-        .await?;
+    let ps = PurgeService::new(investigation_bucket);
+    let (resources, objects) = ps.get_resources_to_purge(investigation_id).await?;
 
     let mut resources = resources.clone();
     resources.sort_by(|a, b| a.is_deletable().cmp(&b.is_deletable()));
@@ -95,8 +93,7 @@ pub async fn purge_investigation(investigation_bucket: &str, investigation_id: &
         return Ok(());
     }
 
-    ps.purge_resources(investigation_bucket, &resources, &objects)
-        .await
+    ps.purge_resources(&resources, &objects).await
 }
 
 pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> {
@@ -107,8 +104,16 @@ pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> 
     let mut refresh = true;
     let mut previous_status = String::new();
     let finished_status = ["ExecutionAborted", "ExecutionFailed", "ExecutionSucceeded"];
+    let mut found_id = false;
 
     while refresh {
+        if !found_id {
+            if let Some(investigation_id) = service.get_investigation_id(instance_id).await {
+                found_id = true;
+                println!("Investigation created: {}", investigation_id);
+            }
+        }
+
         let investigation = service.status(&execution_id).await?;
         let current_status = format!(
             "{} {}",
