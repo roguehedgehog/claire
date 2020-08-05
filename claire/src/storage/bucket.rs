@@ -4,8 +4,8 @@ extern crate rusoto_s3;
 use anyhow::Result;
 use rusoto_core::Region;
 use rusoto_s3::{
-    CommonPrefix, Delete, DeleteObjectsRequest, ListObjectsV2Request, Object, ObjectIdentifier,
-    S3Client, S3,
+    CommonPrefix, Delete, DeleteObjectsRequest, GetObjectTaggingRequest, ListObjectsV2Request,
+    Object, ObjectIdentifier, S3Client, Tag, S3,
 };
 
 pub struct BucketRepo {
@@ -71,5 +71,15 @@ impl BucketRepo {
         self.client.delete_objects(req).await?;
 
         Ok(())
+    }
+
+    pub async fn get_alert_tags(&self, investigation_id: &str) -> Result<Vec<Tag>> {
+        let req = GetObjectTaggingRequest {
+            bucket: self.bucket.to_string(),
+            key: format!("{}/alert.json", investigation_id),
+            ..Default::default()
+        };
+
+        Ok(self.client.get_object_tagging(req).await?.tag_set)
     }
 }

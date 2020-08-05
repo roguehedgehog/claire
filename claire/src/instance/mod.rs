@@ -38,7 +38,7 @@ impl InstanceRepo {
         };
 
         for tag in &tags {
-            if tag.key == Some("tag:InvestigationId".to_string()) {
+            if tag.key == Some("InvestigationId".to_string()) {
                 if let Some(id) = &tag.value {
                     return Ok(id.to_string());
                 } else {

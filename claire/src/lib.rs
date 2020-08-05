@@ -5,6 +5,7 @@ mod storage;
 
 use anyhow::Result;
 use chrono::Utc;
+use execute::state::InvestigationStatus;
 use serde_json::to_string_pretty;
 use service::clear::ClearInvestigationService;
 use service::exec::ExecuteInvestigationService;
@@ -96,56 +97,87 @@ pub async fn purge_investigation(investigation_bucket: &str, investigation_id: &
     ps.purge_resources(&resources, &objects).await
 }
 
-pub async fn start_investigation(instance_id: &str, reason: &str) -> Result<()> {
-    let service = ExecuteInvestigationService::new();
+pub async fn start_investigation(
+    investigation_bucket: &str,
+    instance_id: &str,
+    reason: &str,
+) -> Result<()> {
+    let service = ExecuteInvestigationService::new(investigation_bucket);
     let execution_id = service.start(instance_id, reason).await?;
 
     println!("Investigation started: {}", execution_id);
     let mut refresh = true;
-    let mut previous_status = String::new();
-    let finished_status = ["ExecutionAborted", "ExecutionFailed", "ExecutionSucceeded"];
+    let mut previous_status: Option<InvestigationStatus> = None;
     let mut found_id = false;
 
     while refresh {
         if !found_id {
             if let Some(investigation_id) = service.get_investigation_id(instance_id).await {
                 found_id = true;
-                println!("Investigation created: {}", investigation_id);
+                println!("\nInvestigation created: {}\n", investigation_id);
             }
         }
 
-        let investigation = service.status(&execution_id).await?;
-        let current_status = format!(
-            "{} {}",
-            investigation.status,
-            investigation.get_task_name()?
-        );
-
-        if current_status == previous_status {
-            print!(".");
-        } else {
-            print!("\n{} {}", Utc::now(), current_status);
-            previous_status = current_status;
-        }
-        if std::io::stdout().flush().is_err() {}
-
-        refresh = match finished_status
-            .iter()
-            .position(|s| s == &investigation.status)
-        {
-            Some(_) => false,
-            None => true,
-        };
-
+        let status = service.last_update(&execution_id).await?;
+        refresh = print_investigation_status(&status, &previous_status)?;
         if refresh {
-            std::thread::sleep(std::time::Duration::from_secs(1))
-        } else if investigation.status == "ExecutionFailed" {
-            println!(
-                "Execution Failed with:\n{}",
-                to_string_pretty(&investigation.details).unwrap_or(String::new())
-            )
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            previous_status = Some(status);
         }
     }
 
     Ok(())
+}
+
+pub async fn investigation_status(investigation_bucket: &str, instance_id: &str) -> Result<()> {
+    let service = ExecuteInvestigationService::new(investigation_bucket);
+    let details = service.execution_detials(instance_id).await?;
+    let mut previous_status: Option<InvestigationStatus> = None;
+
+    let mut refresh = true;
+
+    println!("Status of investigation {}:", details.investigation_id);
+    while refresh {
+        let status = service.last_update(&details.execution_arn).await?;
+        refresh = print_investigation_status(&status, &previous_status)?;
+        if refresh {
+            std::thread::sleep(std::time::Duration::from_secs(1));
+            previous_status = Some(status);
+        }
+    }
+
+    Ok(())
+}
+
+fn print_investigation_status(
+    current: &InvestigationStatus,
+    previous: &Option<InvestigationStatus>,
+) -> Result<bool> {
+    let finished_status = ["ExecutionAborted", "ExecutionFailed", "ExecutionSucceeded"];
+    let current_status = format!("{} {}", current.status, current.get_task_name()?);
+    let previous_status = match previous {
+        Some(previous) => format!("{} {}", previous.status, previous.get_task_name()?),
+        None => String::new(),
+    };
+
+    if current_status == previous_status {
+        print!(".");
+    } else {
+        print!("\n{} {}", Utc::now(), current_status);
+    }
+    if std::io::stdout().flush().is_err() {}
+
+    let refresh = match finished_status.iter().position(|s| s == &current.status) {
+        Some(_) => false,
+        None => true,
+    };
+
+    if !refresh && current.status == "ExecutionFailed" {
+        println!(
+            "Execution Failed with:\n{}",
+            to_string_pretty(&current.details).unwrap_or(String::new())
+        )
+    }
+
+    Ok(refresh)
 }

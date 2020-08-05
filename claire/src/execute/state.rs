@@ -9,6 +9,7 @@ use rusoto_stepfunctions::{
 };
 use serde::{Deserialize, Serialize};
 use serde_json::{json, Value};
+
 const CLAIRE_STATE_MACHINE: &str = "claire_investigation";
 
 #[derive(Serialize, Deserialize)]
@@ -35,6 +36,7 @@ impl StartInvestigationRequest {
 }
 
 pub struct InvestigationStatus {
+    pub execution_arn: String,
     pub status: String,
     pub details: Value,
 }
@@ -104,6 +106,7 @@ impl StateMachineRepo {
 
         let details = serde_json::to_value(event)?;
         Ok(InvestigationStatus {
+            execution_arn: execution_arn.to_string(),
             status: event.type_.clone(),
             details,
         })

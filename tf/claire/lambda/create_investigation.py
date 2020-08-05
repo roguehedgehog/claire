@@ -102,8 +102,9 @@ class InvestigationCreationService:
                              execution_id: str) -> str:
         self.logger = get_logger(None)
         instance = self.__get_instance(instance_id)
-        investigation_id = "{}_{}".format(datetime.now(),
-                                          instance["InstanceId"])
+        investigation_id = "{}_{}".format(
+            datetime.now().strftime("%Y-%m-%d.%H:%M:%S"),
+            instance["InstanceId"])
 
         self.logger = get_logger(investigation_id)
 

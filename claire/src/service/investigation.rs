@@ -15,7 +15,7 @@ impl Investigation {
         let instance_id = details[1];
         Ok(Self {
             bucket: investigation_id.to_string(),
-            dt: NaiveDateTime::parse_from_str(&dt, "%F %T.%f")?,
+            dt: NaiveDateTime::parse_from_str(&dt, "%F.%T")?,
             instance_id: instance_id.to_string(),
         })
     }
