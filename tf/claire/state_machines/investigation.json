@@ -4,18 +4,47 @@
         "CreateInvestigation": {
             "Type": "Task",
             "Resource": "${create_investigation}",
-            "Next": "CanInvestigationProceed"
+            "Next": "CanInvestigationProceed",
+            "Parameters": {
+                "execution_arn.$": "$$.Execution.Id",
+                "payload.$": "$"
+            }
         },
         "CanInvestigationProceed": {
             "Type": "Choice",
             "Choices": [
                 {
-                    "Variable": "$.investigation_id",
+                    "Variable": "$.err",
+                    "StringEquals": "InvalidInput",
+                    "Next": "InvalidInput"
+                },
+                {
+                    "Variable": "$.err",
+                    "StringEquals": "InstanceNotFound",
+                    "Next": "InstanceNotFound"
+                },
+                {
+                    "Variable": "$.err",
+                    "StringEquals": "InvestigationInProgress",
+                    "Next": "InvestigationInProgress"
+                },
+                {
+                    "Variable": "$.err",
+                    "StringEquals": "MemoryCaptureDeviceInUse",
+                    "Next": "MemoryCaptureDeviceInUse"
+                },
+                {
+                    "Variable": "$.err",
+                    "StringEquals": "AWSClientError",
+                    "Next": "AWSClientError"
+                },
+                {
+                    "Variable": "$.err",
                     "StringGreaterThan": "",
-                    "Next": "IsolateAndPrepareExtractor"
+                    "Next": "InvalidInput"
                 }
             ],
-            "Default": "CannotCreateInvestigation"
+            "Default": "IsolateAndPrepareExtractor"
         },
         "IsolateAndPrepareExtractor": {
             "Type": "Parallel",
@@ -302,8 +331,25 @@
         "Success": {
             "Type": "Succeed"
         },
-        "CannotCreateInvestigation": {
-            "Type": "Fail"
+        "InvalidInput": {
+            "Type": "Fail",
+            "Cause": "Cannot start investigation with input"
+        },
+        "InstanceNotFound": {
+            "Type": "Fail",
+            "Cause": "The instance to investigate could not be found"
+        },
+        "InvestigationInProgress": {
+            "Type": "Fail",
+            "Cause": "The instance is already tagged as investigating"
+        },
+        "MemoryCaptureDeviceInUse": {
+            "Type": "Fail",
+            "Cause": "The instance has a device attached to /dev/xvdm, could an investigation have been aborted?"
+        },
+        "AWSClientError": {
+            "Type": "Fail",
+            "Cause": "AWS returned an error, see logs for details"
         }
     }
 }

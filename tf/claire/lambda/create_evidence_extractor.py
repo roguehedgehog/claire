@@ -10,7 +10,7 @@ from manage_volumes import MoveVolumesRequst
 from terminate_instance import terminate_instance
 
 
-def create_extractor_instance(investagtion_id: str):
+def create_extractor_instance(investagtion_id: str, is_manual=False):
     ec2 = client("ec2")
     instance_service = InstanceService(investagtion_id)
     instance = instance_service.get_instance(investagtion_id)
@@ -18,6 +18,18 @@ def create_extractor_instance(investagtion_id: str):
     memory_size = instance_service.get_memory_size(instance)
     instance_service.logger("Creating extractor instance")
     subnet = instance["NetworkInterfaces"][0]["SubnetId"]
+    devices = None if is_manual else [{
+        "DeviceName": "/dev/sda1",
+        "Ebs": {
+            "VolumeSize": 8 + max(volumes, key=lambda v: v["Size"])["Size"]
+        }
+    }, {
+        "DeviceName": "/dev/sdm",
+        "Ebs": {
+            "VolumeSize": round((memory_size / 1000) + 1)
+        }
+    }]
+
     extractor = ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
         InstanceType="t2.small",
@@ -28,21 +40,10 @@ def create_extractor_instance(investagtion_id: str):
             "AssociatePublicIpAddress": True,
             "DeleteOnTermination": True,
             "DeviceIndex": 0,
-            "SubnetId": subnet
+            "SubnetId": subnet,
+            "Groups": [environ["SECURITY_GROUP"]],
         }],
-        BlockDeviceMappings=[{
-            "DeviceName": "/dev/sda1",
-            "Ebs": {
-                "DeleteOnTermination": True,
-                "VolumeSize": 8 + max(volumes, key=lambda v: v["Size"])["Size"]
-            }
-        }, {
-            "DeviceName": "/dev/sdm",
-            "Ebs": {
-                "DeleteOnTermination": True,
-                "VolumeSize": round((memory_size / 1000) + 1)
-            }
-        }],
+        BlockDeviceMappings=devices,
         TagSpecifications=[{
             "ResourceType":
             "instance",
@@ -83,6 +84,15 @@ def lambda_handler(event: object, _):
             "is_ready": False,
             "extractor_id": instance["InstanceId"],
         }
+    }
+
+
+def lambda_handler_manual_investigation(event: object, _):
+    instance = create_extractor_instance(event["investigation_id"],
+                                         is_manual=True)
+    return {
+        "is_ready": False,
+        "extractor_id": instance["InstanceId"],
     }
 
 

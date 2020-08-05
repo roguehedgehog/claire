@@ -81,6 +81,25 @@ resource "aws_lambda_function" "create_evidence_extractor" {
   source_code_hash = data.archive_file.lambda_zip.output_base64sha256
 }
 
+resource "aws_lambda_function" "create_manual_evidence_extractor" {
+  function_name = "claire_manual_create_evidence_extractor"
+  handler       = "create_evidence_extractor.lambda_handler_manual_investigation"
+  role          = module.create_instance_role.arn
+
+  environment {
+    variables = {
+      IAM_PROFILE      = aws_iam_instance_profile.claire_ec2_evidence_extractor_profile.arn
+      EXTRACTOR_AMI_ID = var.evidence_extractor_ami_id
+      SECURITY_GROUP   = aws_security_group.egress_and_ssh.id
+    }
+  }
+
+  publish          = true
+  runtime          = "python3.8"
+  filename         = data.archive_file.lambda_zip.output_path
+  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+}
+
 resource "aws_lambda_function" "poll_evidence_extractor" {
   function_name = "claire_poll_evidence_extractor"
   handler       = "create_evidence_extractor.lambda_is_extractor_ready"

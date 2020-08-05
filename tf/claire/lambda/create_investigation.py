@@ -15,47 +15,56 @@ class InvestigationCreationService:
     s3 = client("s3")
     logger = None
 
-    def create_investigation_from_alert(self, event: object) -> object:
+    def create_investigation_from_alert(self, event: object,
+                                        execution_id: str) -> object:
         self.logger = get_logger(None)
-        (is_investigatable, issue) = self.__is_investigatable(event)
+        (is_investigatable, issue, err) = self.__is_investigatable(event)
         if not is_investigatable:
             self.logger("Event will not be investigated {} because {}".format(
                 event, issue))
             return {
                 "investigation_id": None,
                 "instance_id": None,
-                "issue": issue
+                "execution_arn": execution_id,
+                "issue": issue,
+                "err": err
             }
 
         instance_id = event["detail"]["resource"]["instanceDetails"][
             "instanceId"]
         self.logger("Instance {} will be investigated.".format(instance_id))
 
-        investigation_id = self.create_investigation(instance_id, event)
+        investigation_id = self.create_investigation(instance_id, event,
+                                                     execution_id)
 
         return {
             "investigation_id": investigation_id,
-            "instance_id": instance_id
+            "instance_id": instance_id,
+            "execution_arn": execution_id,
+            "err": "",
         }
 
     def __is_investigatable(self, event: object) -> (bool, str):
         if event == {}:
-            return (False, "The event does not contain any information")
+            return (False, "The event does not contain any information",
+                    "InvalidInput")
 
         try:
             if event["detail"]["resource"]["resourceType"] != "Instance":
-                return (False, "The alert in not for an instance")
+                return (False, "The alert in not for an instance",
+                        "InvalidInput")
 
             instance_id = event["detail"]["resource"]["instanceDetails"][
                 "instanceId"]
 
             if instance_id == "":
-                return (False, "The instance id is empty")
+                return (False, "The instance id is empty", "InvalidInput")
 
             instance = self.__get_instance(instance_id)
             if not instance:
                 return (False,
-                        "Instance {} cannot be found".format(instance_id))
+                        "Instance {} cannot be found".format(instance_id),
+                        "InstanceNotFound")
             (
                 is_under_investigaiton,
                 investigation_id,
@@ -64,7 +73,8 @@ class InvestigationCreationService:
                 return (
                     False,
                     "The instance {} is being investigated by investigation {}"
-                    .format(instance_id, investigation_id))
+                    .format(instance_id,
+                            investigation_id), "InvestigationInProgress")
 
             volume_attached_to_memory_device = [
                 device["Ebs"]["VolumeId"]
@@ -77,17 +87,19 @@ class InvestigationCreationService:
                 return (
                     False,
                     "Volume {} is attached to xvdm which will be used to capture memory"
-                    .format(volume_attached_to_memory_device))
+                    .format(volume_attached_to_memory_device),
+                    "MemoryCaptureDeviceInUse")
 
-            return (True, "")
+            return (True, "", "")
 
         except KeyError as e:
-            return (False, "Invalid request: {}".format(e))
+            return (False, "Invalid request: {}".format(e), "InvalidInput")
 
         except ClientError as e:
-            return (False, "AWS returned: {}".format(e))
+            return (False, "AWS returned: {}".format(e), "AWSClientError")
 
-    def create_investigation(self, instance_id: str, event: object) -> str:
+    def create_investigation(self, instance_id: str, event: object,
+                             execution_id: str) -> str:
         self.logger = get_logger(None)
         instance = self.__get_instance(instance_id)
         investigation_id = "{}_{}".format(datetime.now(),
@@ -95,8 +107,8 @@ class InvestigationCreationService:
 
         self.logger = get_logger(investigation_id)
 
-        self.__put(investigation_id, "alert.json", event)
-        self.__put(investigation_id, "instance.json", instance)
+        self.__put(investigation_id, "alert.json", event, execution_id)
+        self.__put(investigation_id, "instance.json", instance, execution_id)
 
         self.__tag(
             instance_id,
@@ -122,12 +134,14 @@ class InvestigationCreationService:
 
         return instance
 
-    def __put(self, investigation_id: str, name: str, details: object):
+    def __put(self, investigation_id: str, name: str, details: object,
+              execution_id: str):
         self.logger("Putting {}".format(name))
         self.s3.put_object(
             Bucket=environ["INVESTIGATION_BUCKET"],
             Key="{}/{}".format(investigation_id, name),
             Body=dumps(details, indent=2, skipkeys=True, default=str),
+            Tagging="CLAIRE_EXEC={}".format(execution_id),
         )
         self.logger("Putting {} complete".format(name))
 
@@ -152,4 +166,11 @@ class InvestigationCreationService:
 
 def lambda_handler(event, _):
     creator = InvestigationCreationService()
-    return creator.create_investigation_from_alert(event)
+    try:
+        payload = event["payload"]
+        execution_id = event["execution_arn"]
+    except KeyError:
+        payload = event
+        execution_id = None
+
+    return creator.create_investigation_from_alert(payload, execution_id)

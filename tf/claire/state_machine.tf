@@ -1,12 +1,12 @@
-resource "aws_sfn_state_machine" "claire_acquisition" {
-  name       = "claire_acquisition"
+resource "aws_sfn_state_machine" "claire_investigation" {
+  name       = "claire_investigation"
   role_arn   = aws_iam_role.claire_state_machine_role.arn
-  definition = data.template_file.claire_acquisition_state_machine.rendered
+  definition = data.template_file.claire_investigation_state_machine.rendered
 
 }
 
-data "template_file" "claire_acquisition_state_machine" {
-  template = file("state_machines/acquisition.json")
+data "template_file" "claire_investigation_state_machine" {
+  template = file("state_machines/investigation.json")
 
   vars = {
     move_volumes                 = aws_sfn_state_machine.claire_move_volumes.arn

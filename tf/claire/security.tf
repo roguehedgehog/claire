@@ -24,3 +24,23 @@ resource "aws_security_group" "egress_only" {
   }
 }
 
+resource "aws_security_group" "egress_and_ssh" {
+  name        = "CLAIRE Manual Investigator"
+  vpc_id      = var.vpc_id
+  description = "To allow investigator services to talk to the internet"
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+
+  ingress {
+    protocol    = "tcp"
+    from_port   = 22
+    to_port     = 22
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
