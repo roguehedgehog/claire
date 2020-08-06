@@ -4,8 +4,8 @@ extern crate tokio;
 
 use anyhow::Result;
 use claire::{
-    clear_investigation, investigation_status, list_investigations, manual_investigation,
-    purge_investigation, start_investigation,
+    clear_investigation, download_investigation, investigation_status, list_investigations,
+    manual_investigation, purge_investigation, start_investigation,
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -16,6 +16,15 @@ async fn main() -> Result<()> {
 
     if let Some(args) = args.subcommand_matches("clear") {
         return clear_investigation(get(args, "investigation_id")).await;
+    }
+
+    if let Some(args) = args.subcommand_matches("download") {
+        return download_investigation(
+            get(args, "investigation_bucket"),
+            get(args, "investigation_id"),
+            get(args, "destination"),
+        )
+        .await;
     }
 
     if let Some(args) = args.subcommand_matches("investigate") {
@@ -78,6 +87,17 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .version(crate_version!())
         .author(crate_authors!())
         .subcommand(SubCommand::with_name("clear").arg(&id))
+        .subcommand(
+            SubCommand::with_name("download")
+                .arg(&id)
+                .arg(
+                    Arg::with_name("destination")
+                        .required(true)
+                        .takes_value(true)
+                        .help("The destination to download the investigation data"),
+                )
+                .arg(&bucket),
+        )
         .subcommand(
             SubCommand::with_name("investigate")
                 .arg(&instance_id)

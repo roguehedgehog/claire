@@ -8,6 +8,7 @@ use chrono::Utc;
 use execute::state::InvestigationStatus;
 use serde_json::to_string_pretty;
 use service::clear::ClearInvestigationService;
+use service::download::DownloadService;
 use service::exec::ExecuteInvestigationService;
 use service::investigation::InvestigationsService;
 use service::manual::ManualInvestigationService;
@@ -32,6 +33,17 @@ pub async fn clear_investigation(investigation_id: &str) -> Result<()> {
             println!("{}", resource);
         }
     }
+    Ok(())
+}
+
+pub async fn download_investigation(
+    investigation_bucket: &str,
+    investigation_id: &str,
+    destination: &str,
+) -> Result<()> {
+    let service = DownloadService::new(investigation_bucket);
+    service.download(investigation_id, destination).await?;
+
     Ok(())
 }
 
