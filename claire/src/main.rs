@@ -86,7 +86,11 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
     App::new(crate_name!())
         .version(crate_version!())
         .author(crate_authors!())
-        .subcommand(SubCommand::with_name("clear").arg(&id))
+        .about("Initialate, manage and clear CLAIRE investigations")
+        .subcommand(SubCommand::with_name("clear").arg(&id).about(
+            "Removes the CLARE tags from investigated resources \
+             use this command to clear the investigation but leave the collected evidence",
+        ))
         .subcommand(
             SubCommand::with_name("download")
                 .arg(&id)
@@ -96,7 +100,8 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                         .takes_value(true)
                         .help("The destination to download the investigation data"),
                 )
-                .arg(&bucket),
+                .arg(&bucket)
+                .about("Download investigation evidence to a local directory"),
         )
         .subcommand(
             SubCommand::with_name("investigate")
@@ -107,22 +112,38 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                         .required(true)
                         .help("The reason for the investigation"),
                 )
-                .arg(&bucket),
+                .arg(&bucket)
+                .about("Starts an investigation into the given instance"),
         )
-        .subcommand(SubCommand::with_name("list").arg(&bucket))
         .subcommand(
-            SubCommand::with_name("manual").arg(&bucket).arg(&id).arg(
-                Arg::with_name("key_name")
-                    .takes_value(true)
-                    .required(true)
-                    .help("The KeyPair stored on AWS to SSH into this instance."),
-            ),
+            SubCommand::with_name("list")
+                .arg(&bucket)
+                .about("List the investigations"),
         )
-        .subcommand(SubCommand::with_name("purge").arg(&bucket).arg(&id))
+        .subcommand(
+            SubCommand::with_name("manual")
+                .arg(&bucket)
+                .arg(&id)
+                .arg(
+                    Arg::with_name("key_name")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The KeyPair stored on AWS to SSH into this instance."),
+                )
+                .about(
+                    "Spin up an instance and attach snapshots of a suspicious \
+            instance so an investigation can be continued manually.",
+                ),
+        )
+        .subcommand(SubCommand::with_name("purge").arg(&bucket).arg(&id).about(
+            "Purge the investigation, removes evidence from S3, \
+        untags and deletes snapshots",
+        ))
         .subcommand(
             SubCommand::with_name("status")
                 .arg(&bucket)
-                .arg(&instance_id),
+                .arg(&instance_id)
+                .about("View the status of an investigation"),
         )
 }
 
