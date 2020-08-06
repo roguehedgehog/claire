@@ -1,22 +1,149 @@
 extern crate rusoto_core;
 extern crate rusoto_ec2;
+extern crate rusoto_lambda;
 
-use anyhow::{bail, Result};
+use crate::instance::tag::Resource;
+use anyhow::{anyhow, bail, Result};
+use bytes::Bytes;
 use rusoto_core::Region;
-use rusoto_ec2::{DescribeInstancesRequest, Ec2, Ec2Client};
+use rusoto_ec2::{
+    AttachVolumeRequest, CreateVolumeRequest, DescribeInstancesRequest, DescribeVolumesRequest,
+    Ec2, Ec2Client, Instance, Volume,
+};
+use rusoto_lambda::{InvocationRequest, Lambda, LambdaClient};
+use serde_json::json;
 
 pub mod snapshot;
 pub mod tag;
 
+const CREATE_EXTRACTOR_FN_NAME: &str = "claire_manual_create_evidence_extractor";
+
 pub struct InstanceRepo {
-    client: Ec2Client,
+    ec2: Ec2Client,
+    lambda: LambdaClient,
 }
 
 impl InstanceRepo {
     pub fn new() -> Self {
         Self {
-            client: Ec2Client::new(Region::default()),
+            ec2: Ec2Client::new(Region::default()),
+            lambda: LambdaClient::new(Region::default()),
         }
+    }
+
+    pub async fn new_extractor_instance(
+        &self,
+        investigation_id: &str,
+        key_name: &str,
+    ) -> Result<Instance> {
+        let payload = json!({
+            "investigation_id": investigation_id,
+            "key_name": key_name,
+        });
+        let req = InvocationRequest {
+            function_name: CREATE_EXTRACTOR_FN_NAME.to_string(),
+            payload: Some(Bytes::from(payload.to_string())),
+            ..Default::default()
+        };
+
+        let resp = match self.lambda.invoke(req).await?.payload {
+            Some(payload) => payload,
+            None => bail!("There was no response from the create extractor lambda"),
+        };
+        let resp: serde_json::Value = serde_json::from_slice(&resp[..])?;
+        if let Some(err) = resp.get("errorMessage") {
+            bail!("Create instance failed with {}", err.to_string());
+        }
+
+        if let Some(id) = resp.get("extractor_id") {
+            return self
+                .get_instance(
+                    id.as_str()
+                        .ok_or(anyhow!("Could not convert instance id to str"))?,
+                )
+                .await;
+        }
+
+        bail!("Unexpected response creating instance {}", resp);
+    }
+
+    pub async fn get_instance(&self, instance_id: &str) -> Result<Instance> {
+        let req = DescribeInstancesRequest {
+            instance_ids: Some(vec![instance_id.to_string()]),
+            ..Default::default()
+        };
+
+        let resp = self.ec2.describe_instances(req).await?;
+        let instance = match resp
+            .reservations
+            .and_then(|vec| vec.into_iter().nth(0))
+            .and_then(|r| r.instances)
+            .and_then(|vec| vec.into_iter().nth(0))
+        {
+            Some(instance) => instance,
+            None => bail!("Instance {} could not be found.", instance_id),
+        };
+
+        Ok(instance)
+    }
+
+    pub async fn create_volumes(
+        &self,
+        instance: &Instance,
+        snapshots: &Vec<&Resource>,
+    ) -> Result<Vec<Volume>> {
+        let mut vols: Vec<Volume> = Vec::with_capacity(snapshots.len());
+        for snapshot in snapshots {
+            let req = CreateVolumeRequest {
+                availability_zone: instance
+                    .placement
+                    .clone()
+                    .and_then(|p| p.availability_zone)
+                    .ok_or(anyhow!("Missing availability_zone"))?
+                    .clone(),
+                snapshot_id: Some(snapshot.id.to_string()),
+                ..Default::default()
+            };
+
+            vols.push(self.ec2.create_volume(req).await?);
+        }
+
+        Ok(vols)
+    }
+
+    pub async fn get_volumes(&self, volume_ids: &Vec<String>) -> Result<Vec<Volume>> {
+        let req = DescribeVolumesRequest {
+            volume_ids: Some(volume_ids.clone()),
+            ..Default::default()
+        };
+
+        let resp = self.ec2.describe_volumes(req).await?;
+        match resp.volumes {
+            Some(vols) => Ok(vols),
+            None => bail!(
+                "No volumes could be found matching {}",
+                volume_ids.join(", ")
+            ),
+        }
+    }
+
+    pub async fn attach_volumes(
+        &self,
+        instance_id: &str,
+        devices: Vec<(String, String)>,
+    ) -> Result<()> {
+        for (device, vol) in devices {
+            let req = AttachVolumeRequest {
+                instance_id: instance_id.to_string(),
+                volume_id: vol,
+                device,
+                ..Default::default()
+            };
+
+            self.ec2.attach_volume(req).await?;
+        }
+
+        Ok(())
     }
 
     pub async fn get_investigation_id(&self, instance_id: &str) -> Result<String> {
@@ -25,7 +152,7 @@ impl InstanceRepo {
             ..Default::default()
         };
 
-        let resp = self.client.describe_instances(req).await?;
+        let resp = self.ec2.describe_instances(req).await?;
         let tags = match resp
             .reservations
             .and_then(|vec| vec.into_iter().nth(0))

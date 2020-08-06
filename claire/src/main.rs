@@ -4,8 +4,8 @@ extern crate tokio;
 
 use anyhow::Result;
 use claire::{
-    clear_investigation, investigation_status, list_investigations, purge_investigation,
-    start_investigation,
+    clear_investigation, investigation_status, list_investigations, manual_investigation,
+    purge_investigation, start_investigation,
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -15,33 +15,40 @@ async fn main() -> Result<()> {
     let args = app.get_matches();
 
     if let Some(args) = args.subcommand_matches("clear") {
-        return clear_investigation(argvalue(args, "investigation_id")).await;
+        return clear_investigation(get(args, "investigation_id")).await;
     }
 
     if let Some(args) = args.subcommand_matches("investigate") {
         return start_investigation(
-            argvalue(args, "investigation_bucket"),
-            argvalue(args, "instance_id"),
-            argvalue(args, "reason"),
+            get(args, "investigation_bucket"),
+            get(args, "instance_id"),
+            get(args, "reason"),
         )
         .await;
     }
 
     if let Some(args) = args.subcommand_matches("list") {
-        return list_investigations(argvalue(args, "investigation_bucket")).await;
+        return list_investigations(get(args, "investigation_bucket")).await;
     }
-    if let Some(args) = args.subcommand_matches("status") {
-        return investigation_status(
-            argvalue(args, "investigation_bucket"),
-            argvalue(args, "instance_id"),
+
+    if let Some(args) = args.subcommand_matches("manual") {
+        return manual_investigation(
+            get(args, "investigation_id"),
+            get(args, "investigation_bucket"),
+            get(args, "key_name"),
         )
         .await;
     }
 
+    if let Some(args) = args.subcommand_matches("status") {
+        return investigation_status(get(args, "investigation_bucket"), get(args, "instance_id"))
+            .await;
+    }
+
     if let Some(args) = args.subcommand_matches("purge") {
         return purge_investigation(
-            argvalue(args, "investigation_bucket"),
-            argvalue(args, "investigation_id"),
+            get(args, "investigation_bucket"),
+            get(args, "investigation_id"),
         )
         .await;
     }
@@ -58,7 +65,9 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .long("bucket")
         .env("INVESTIGATION_BUCKET")
         .required(true)
-        .help("The name of the S3 bucket where evidence is stored.");
+        .help(
+            "The name of the S3 bucket where evidence is stored, i.e. [your-prefix]-investigations.",
+        );
 
     let instance_id = Arg::with_name("instance_id")
         .required(true)
@@ -78,6 +87,14 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
             ),
         )
         .subcommand(SubCommand::with_name("list").arg(&bucket))
+        .subcommand(
+            SubCommand::with_name("manual").arg(&bucket).arg(&id).arg(
+                Arg::with_name("key_name")
+                    .takes_value(true)
+                    .required(true)
+                    .help("The KeyPair stored on AWS to SSH into this instance."),
+            ),
+        )
         .subcommand(SubCommand::with_name("purge").arg(&bucket).arg(&id))
         .subcommand(
             SubCommand::with_name("status")
@@ -86,9 +103,8 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         )
 }
 
-fn argvalue<'a>(matches: &'a ArgMatches, name: &str) -> &'a str {
-    match matches.value_of(name) {
-        Some(name) => name,
-        None => "",
-    }
+fn get<'a>(matches: &'a ArgMatches, name: &str) -> &'a str {
+    matches
+        .value_of(name)
+        .expect(&format!("{} must be provided", name))
 }

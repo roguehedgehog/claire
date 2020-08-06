@@ -10,8 +10,11 @@ use serde_json::to_string_pretty;
 use service::clear::ClearInvestigationService;
 use service::exec::ExecuteInvestigationService;
 use service::investigation::InvestigationsService;
+use service::manual::ManualInvestigationService;
 use service::purge::PurgeService;
 use std::io::{stdin, stdout, Write};
+use std::thread::sleep;
+use std::time::Duration;
 
 static CLAIRE: &str = "CLAIRE";
 static INVESTIGATION_TAG_KEY: &str = "InvestigationId";
@@ -121,7 +124,7 @@ pub async fn start_investigation(
         let status = service.last_update(&execution_id).await?;
         refresh = print_investigation_status(&status, &previous_status)?;
         if refresh {
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            sleep(Duration::from_secs(1));
             previous_status = Some(status);
         }
     }
@@ -141,7 +144,7 @@ pub async fn investigation_status(investigation_bucket: &str, instance_id: &str)
         let status = service.last_update(&details.execution_arn).await?;
         refresh = print_investigation_status(&status, &previous_status)?;
         if refresh {
-            std::thread::sleep(std::time::Duration::from_secs(1));
+            sleep(Duration::from_secs(1));
             previous_status = Some(status);
         }
     }
@@ -165,7 +168,7 @@ fn print_investigation_status(
     } else {
         print!("\n{} {}", Utc::now(), current_status);
     }
-    if std::io::stdout().flush().is_err() {}
+    if stdout().flush().is_err() {}
 
     let refresh = match finished_status.iter().position(|s| s == &current.status) {
         Some(_) => false,
@@ -180,4 +183,53 @@ fn print_investigation_status(
     }
 
     Ok(refresh)
+}
+
+pub async fn manual_investigation(
+    investigation_id: &str,
+    investigation_bucket: &str,
+    key_name: &str,
+) -> Result<()> {
+    let service = ManualInvestigationService::new(investigation_bucket);
+    let (extractor, vols) = service.create_resources(investigation_id, key_name).await?;
+
+    println!(
+        "Extractor {} and volume(s) {} are being created.",
+        extractor,
+        vols.join(", ")
+    );
+
+    let mut instance_ready = false;
+    let mut vols_ready = false;
+    while !instance_ready || !vols_ready {
+        sleep(Duration::from_secs(1));
+        print!(".");
+        if stdout().flush().is_err() {}
+
+        if !instance_ready {
+            instance_ready = service.is_instance_ready(&extractor).await?;
+            if instance_ready {
+                println!("Instance is ready");
+            }
+        }
+
+        if !vols_ready {
+            vols_ready = service.is_volumes_ready(&vols).await?;
+            if vols_ready {
+                println!("Volume(s) ready");
+            }
+        }
+    }
+
+    println!("Attaching volume(s)");
+    let devices = service.attach_volumes(&extractor, &vols).await?;
+
+    println!("Volumes attached at:");
+    for (device, _) in devices {
+        println!("{}", device);
+    }
+
+    println!("IP {}", service.get_ip(&extractor).await?);
+
+    Ok(())
 }

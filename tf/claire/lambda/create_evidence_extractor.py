@@ -10,25 +10,53 @@ from manage_volumes import MoveVolumesRequst
 from terminate_instance import terminate_instance
 
 
-def create_extractor_instance(investagtion_id: str, is_manual=False):
+def create_manual_extractor(investigation_id: str, key_name: str):
     ec2 = client("ec2")
-    instance_service = InstanceService(investagtion_id)
-    instance = instance_service.get_instance(investagtion_id)
-    volumes = instance_service.get_volumes(instance)
-    memory_size = instance_service.get_memory_size(instance)
+
+    return ec2.run_instances(
+        ImageId=environ["EXTRACTOR_AMI_ID"],
+        InstanceType="t2.small",
+        MinCount=1,
+        MaxCount=1,
+        KeyName=key_name,
+        InstanceInitiatedShutdownBehavior="terminate",
+        NetworkInterfaces=[{
+            "AssociatePublicIpAddress":
+            True,
+            "DeleteOnTermination":
+            True,
+            "DeviceIndex":
+            0,
+            "SubnetId":
+            InstanceService(investigation_id).get_instance(investigation_id)
+            ["NetworkInterfaces"][0]["SubnetId"],
+            "Groups": [environ["SECURITY_GROUP"]],
+        }],
+        TagSpecifications=[{
+            "ResourceType":
+            "instance",
+            "Tags": [{
+                "Key": "Name",
+                "Value": "CLAIRE Manual Evidence Extractor"
+            }, {
+                "Key": "CLAIRE",
+                "Value": "Worker",
+            }, {
+                "Key": "InvestigationId",
+                "Value": investigation_id,
+            }]
+        }],
+        IamInstanceProfile={
+            "Arn": environ["IAM_PROFILE"],
+        },
+    )["Instances"][0]
+
+
+def create_extractor_instance(investigation_id: str):
+    ec2 = client("ec2")
+    instance_service = InstanceService(investigation_id)
+    instance = instance_service.get_instance(investigation_id)
     instance_service.logger("Creating extractor instance")
-    subnet = instance["NetworkInterfaces"][0]["SubnetId"]
-    devices = None if is_manual else [{
-        "DeviceName": "/dev/sda1",
-        "Ebs": {
-            "VolumeSize": 8 + max(volumes, key=lambda v: v["Size"])["Size"]
-        }
-    }, {
-        "DeviceName": "/dev/sdm",
-        "Ebs": {
-            "VolumeSize": round((memory_size / 1000) + 1)
-        }
-    }]
 
     extractor = ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
@@ -37,13 +65,30 @@ def create_extractor_instance(investagtion_id: str, is_manual=False):
         MaxCount=1,
         InstanceInitiatedShutdownBehavior="terminate",
         NetworkInterfaces=[{
-            "AssociatePublicIpAddress": True,
-            "DeleteOnTermination": True,
-            "DeviceIndex": 0,
-            "SubnetId": subnet,
+            "AssociatePublicIpAddress":
+            True,
+            "DeleteOnTermination":
+            True,
+            "DeviceIndex":
+            0,
+            "SubnetId":
+            instance["NetworkInterfaces"][0]["SubnetId"],
             "Groups": [environ["SECURITY_GROUP"]],
         }],
-        BlockDeviceMappings=devices,
+        BlockDeviceMappings=[{
+            "DeviceName": "/dev/sda1",
+            "Ebs": {
+                "VolumeSize":
+                8 + max(instance_service.get_volumes(instance),
+                        key=lambda v: v["Size"])["Size"]
+            }
+        }, {
+            "DeviceName": "/dev/sdm",
+            "Ebs": {
+                "VolumeSize":
+                round((instance_service.get_memory_size(instance) / 1000) + 1)
+            }
+        }],
         TagSpecifications=[{
             "ResourceType":
             "instance",
@@ -55,7 +100,7 @@ def create_extractor_instance(investagtion_id: str, is_manual=False):
                 "Value": "Worker",
             }, {
                 "Key": "InvestigationId",
-                "Value": investagtion_id,
+                "Value": investigation_id,
             }]
         }],
         IamInstanceProfile={
@@ -88,10 +133,9 @@ def lambda_handler(event: object, _):
 
 
 def lambda_handler_manual_investigation(event: object, _):
-    instance = create_extractor_instance(event["investigation_id"],
-                                         is_manual=True)
+    instance = create_manual_extractor(event["investigation_id"],
+                                       key_name=event["key_name"])
     return {
-        "is_ready": False,
         "extractor_id": instance["InstanceId"],
     }
 
