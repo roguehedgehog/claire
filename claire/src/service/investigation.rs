@@ -1,5 +1,5 @@
 use crate::storage::bucket::BucketRepo;
-use anyhow::{bail, Result};
+use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDateTime;
 #[derive(Debug, Clone)]
 pub struct Investigation {
@@ -15,7 +15,8 @@ impl Investigation {
         let instance_id = details[1];
         Ok(Self {
             bucket: investigation_id.to_string(),
-            dt: NaiveDateTime::parse_from_str(&dt, "%F.%T")?,
+            dt: NaiveDateTime::parse_from_str(&dt, "%F.%T")
+                .with_context(|| format!("Could not convert key name {} to date", dt))?,
             instance_id: instance_id.to_string(),
         })
     }
@@ -34,16 +35,17 @@ impl InvestigationsService {
 
     pub async fn get_investigations(&self, prefix: Option<String>) -> Result<Vec<Investigation>> {
         let dirs = self.bucket_repo.get_investigations(prefix).await?;
-
-        Ok(dirs
+        let prefix = dirs
             .iter()
-            .map(|o| match &o.prefix {
-                Some(key) => Ok(&key[0..key.len() - 1]),
-                None => bail!("Prefix is missing a name"),
+            .map(|o| o.prefix.clone().ok_or(anyhow!("The prefix is missing")))
+            .collect::<Result<Vec<String>>>()?;
+
+        prefix
+            .iter()
+            .map(|investigation_id| {
+                Investigation::new(&investigation_id[0..investigation_id.len() - 1])
             })
-            .map(|investigation_id| Investigation::new(&investigation_id?))
-            .filter_map(Result::ok)
-            .collect())
+            .collect::<Result<Vec<Investigation>>>()
     }
 
     pub async fn get_investigation(&self, prefix: &str) -> Result<Investigation> {

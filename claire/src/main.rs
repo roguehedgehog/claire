@@ -79,12 +79,15 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .author(crate_authors!())
         .subcommand(SubCommand::with_name("clear").arg(&id))
         .subcommand(
-            SubCommand::with_name("investigate").arg(&instance_id).arg(
-                Arg::with_name("reason")
-                    .takes_value(true)
-                    .required(true)
-                    .help("The reason for the investigation"),
-            ),
+            SubCommand::with_name("investigate")
+                .arg(&instance_id)
+                .arg(
+                    Arg::with_name("reason")
+                        .takes_value(true)
+                        .required(true)
+                        .help("The reason for the investigation"),
+                )
+                .arg(&bucket),
         )
         .subcommand(SubCommand::with_name("list").arg(&bucket))
         .subcommand(
