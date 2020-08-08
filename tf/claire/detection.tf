@@ -1,7 +1,6 @@
 resource "aws_guardduty_detector" "detector" {
-  count                        = var.enable_guardduty
-  enable                       = true
-  finding_publishing_frequency = "FIFTEEN_MINUTES"
+  count  = var.enable_guardduty
+  enable = true
 }
 
 resource "aws_cloudwatch_event_rule" "detection_rule" {
