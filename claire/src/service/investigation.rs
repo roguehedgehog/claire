@@ -3,7 +3,7 @@ use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDateTime;
 #[derive(Debug, Clone)]
 pub struct Investigation {
-    instance_id: String,
+    pub instance_id: String,
     dt: NaiveDateTime,
     pub bucket: String,
 }

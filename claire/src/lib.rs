@@ -1,9 +1,10 @@
+mod access;
 mod execute;
 mod instance;
 mod service;
 mod storage;
 
-use anyhow::Result;
+use anyhow::{bail, Result};
 use chrono::Utc;
 use execute::state::InvestigationStatus;
 use serde_json::to_string_pretty;
@@ -13,6 +14,7 @@ use service::exec::ExecuteInvestigationService;
 use service::investigation::InvestigationsService;
 use service::manual::ManualInvestigationService;
 use service::purge::PurgeService;
+use service::token::InvalidateTokensService;
 use std::io::{stdin, stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
@@ -99,15 +101,7 @@ pub async fn purge_investigation(investigation_bucket: &str, investigation_id: &
         println!("Delete {}", object.key.clone().unwrap());
     }
 
-    print!("\nType `yes` to confirm these changes> ");
-    stdout().flush()?;
-
-    let mut input = String::new();
-    stdin().read_line(&mut input)?;
-    if input.trim() != "yes" {
-        println!("Aboring");
-        return Ok(());
-    }
+    confirm()?;
 
     ps.purge_resources(&resources, &objects).await
 }
@@ -242,6 +236,48 @@ pub async fn manual_investigation(
     }
 
     println!("IP {}", service.get_ip(&extractor).await?);
+
+    Ok(())
+}
+
+pub async fn invalidate_tokens(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
+    let service = InvalidateTokensService::new(investigation_bucket);
+    let (investigation_id, roles) = service.get_roles(investigation_id).await?;
+
+    println!("Found investigation {}", investigation_id);
+    if roles.is_empty() {
+        bail!("There are no tokens to invalidate because the profile does not have any roles assigned.");
+    }
+
+    println!("These roles will have their existing tokens invalidated:\n");
+    for role in &roles {
+        println!("{}", role);
+    }
+
+    println!("\n\
+    Invalidating tokens will require an app or user to clear their cached token(s) and generating new ones.\n\
+    Apps which get tokens through the EC2 meta-data service will have to wait for Amazon to refresh their tokens,\n\
+    a manual refresh can be initialed by reapplying the instance profile to each affected instance.");
+
+    confirm()?;
+
+    service.invalidate_tokens(&roles).await?;
+
+    println!("ClaireInvalidateTokens inline policy added to roles");
+
+    Ok(())
+}
+
+fn confirm() -> Result<()> {
+    let mut input = String::new();
+
+    print!("\nType `yes` to confirm these changes> ");
+    if stdout().flush().is_err() {}
+
+    stdin().read_line(&mut input)?;
+    if input.trim() != "yes" {
+        bail!("Aboring");
+    }
 
     Ok(())
 }

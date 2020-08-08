@@ -143,6 +143,7 @@ dependencies = [
  "clap 2.33.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_core 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_ec2 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusoto_iam 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_lambda 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_s3 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
  "rusoto_stepfunctions 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
@@ -919,6 +920,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "rusoto_iam"
+version = "0.45.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+dependencies = [
+ "async-trait 0.1.36 (registry+https://github.com/rust-lang/crates.io-index)",
+ "bytes 0.5.6 (registry+https://github.com/rust-lang/crates.io-index)",
+ "futures 0.3.5 (registry+https://github.com/rust-lang/crates.io-index)",
+ "rusoto_core 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)",
+ "serde_urlencoded 0.6.1 (registry+https://github.com/rust-lang/crates.io-index)",
+ "xml-rs 0.8.3 (registry+https://github.com/rust-lang/crates.io-index)",
+]
+
+[[package]]
 name = "rusoto_lambda"
 version = "0.45.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1642,6 +1656,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 "checksum rusoto_core 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "e977941ee0658df96fca7291ecc6fc9a754600b21ad84b959eb1dbbc9d5abcc7"
 "checksum rusoto_credential 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "09ac05563f83489b19b4d413607a30821ab08bbd9007d14fa05618da3ef09d8b"
 "checksum rusoto_ec2 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "5145366791ba9097d917330944ef460e1ebd67da871a8e04ad9f51cecc64375f"
+"checksum rusoto_iam 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "73f792f9b9977eb4af7dae0de5ec6ced243a75a8ba25b903d8251cc8ac42b1a5"
 "checksum rusoto_lambda 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "f24295496612998476a7236576377554dbffbeb03836e083932d89855df1b0ed"
 "checksum rusoto_s3 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "1146e37a7c1df56471ea67825fe09bbbd37984b5f6e201d8b2e0be4ee15643d8"
 "checksum rusoto_signature 0.45.0 (registry+https://github.com/rust-lang/crates.io-index)" = "97a740a88dde8ded81b6f2cff9cd5e054a5a2e38a38397260f7acdd2c85d17dd"

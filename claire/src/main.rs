@@ -4,8 +4,8 @@ extern crate tokio;
 
 use anyhow::Result;
 use claire::{
-    clear_investigation, download_investigation, investigation_status, list_investigations,
-    manual_investigation, purge_investigation, start_investigation,
+    clear_investigation, download_investigation, invalidate_tokens, investigation_status,
+    list_investigations, manual_investigation, purge_investigation, start_investigation,
 };
 use clap::{App, Arg, ArgMatches, SubCommand};
 
@@ -32,6 +32,14 @@ async fn main() -> Result<()> {
             get(args, "investigation_bucket"),
             get(args, "instance_id"),
             get(args, "reason"),
+        )
+        .await;
+    }
+
+    if let Some(args) = args.subcommand_matches("invalidate-tokens") {
+        return invalidate_tokens(
+            get(args, "investigation_bucket"),
+            get(args, "investigation_id"),
         )
         .await;
     }
@@ -114,6 +122,12 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 )
                 .arg(&bucket)
                 .about("Starts an investigation into the given instance"),
+        )
+        .subcommand(
+            SubCommand::with_name("invalidate-tokens")
+                .arg(&id)
+                .arg(&bucket)
+                .about("Invalidate any tokens that may have been stolen."),
         )
         .subcommand(
             SubCommand::with_name("list")
