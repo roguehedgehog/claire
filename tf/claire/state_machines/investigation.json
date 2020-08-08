@@ -59,7 +59,7 @@
                         },
                         "WaitForExtractorBoot": {
                             "Type": "Wait",
-                            "Seconds": 10,
+                            "Seconds": 20,
                             "Next": "PollExtractor"
                         },
                         "PollExtractor": {
@@ -159,7 +159,7 @@
                         },
                         "WaitCaptureMemory": {
                             "Type": "Wait",
-                            "Seconds": 30,
+                            "Seconds": 60,
                             "Next": "PollCaptureMemory"
                         },
                         "PollCaptureMemory": {
@@ -198,7 +198,7 @@
                         },
                         "WaitRunMemoryAnalysis": {
                             "Type": "Wait",
-                            "Seconds": 10,
+                            "Seconds": 60,
                             "Next": "PollRunMemoryAnalysis"
                         },
                         "PollRunMemoryAnalysis": {
@@ -242,7 +242,7 @@
                         },
                         "WaitSnapshotVolumes": {
                             "Type": "Wait",
-                            "Seconds": 10,
+                            "Seconds": 90,
                             "Next": "PollSnapshotVolumes"
                         },
                         "PollSnapshotVolumes": {
