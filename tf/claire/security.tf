@@ -1,5 +1,5 @@
 resource "aws_security_group" "locked_down" {
-  name        = "CLAIRE Locked Down"
+  name        = "claire_locked_down"
   vpc_id      = var.vpc_id
   description = "Instances should only be able to communicate with SSM"
 
@@ -12,7 +12,7 @@ resource "aws_security_group" "locked_down" {
 }
 
 resource "aws_security_group" "egress_only" {
-  name        = "CLAIRE Investigator"
+  name        = "claire_investigator"
   vpc_id      = var.vpc_id
   description = "To allow investigator services to talk to the internet"
 
@@ -25,7 +25,7 @@ resource "aws_security_group" "egress_only" {
 }
 
 resource "aws_security_group" "egress_and_ssh" {
-  name        = "CLAIRE Manual Investigator"
+  name        = "claire_manual_investigator"
   vpc_id      = var.vpc_id
   description = "To allow investigator services to talk to the internet"
 
