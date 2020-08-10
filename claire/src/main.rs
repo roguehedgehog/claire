@@ -1,7 +1,7 @@
 use anyhow::Result;
 use claire::{
-    clear_investigation, download_investigation, invalidate_tokens, investigation_status,
-    isolate_instance, list_investigations, manual_investigation, purge_investigation,
+    clear_investigation, download_investigation, investigation_status, isolate_instance,
+    list_investigations, manual_investigation, purge_investigation, revoke_access,
     start_investigation,
 };
 use clap::{crate_authors, crate_name, crate_version, App, Arg, ArgMatches, SubCommand};
@@ -40,8 +40,8 @@ async fn main() -> Result<()> {
         .await;
     }
 
-    if let Some(args) = args.subcommand_matches("invalidate-tokens") {
-        return invalidate_tokens(
+    if let Some(args) = args.subcommand_matches("revoke") {
+        return revoke_access(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
@@ -135,12 +135,9 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 .arg(&bucket)
                 .about("Starts an investigation into the given instance"),
         )
-        .subcommand(
-            SubCommand::with_name("invalidate-tokens")
-                .arg(&id)
-                .arg(&bucket)
-                .about("Invalidate any tokens that may have been stolen."),
-        )
+        .subcommand(SubCommand::with_name("revoke").arg(&id).arg(&bucket).about(
+            "Revoke instance permissions and invalidate any tokens that may have been stolen.",
+        ))
         .subcommand(
             SubCommand::with_name("isolate")
                 .arg(&id)

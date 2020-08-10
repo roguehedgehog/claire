@@ -1,37 +1,69 @@
 use crate::access::role::RoleRepo;
+use crate::instance::tag::TagRepo;
 use crate::instance::InstanceRepo;
-use crate::service::investigation::InvestigationsService;
+use crate::service::investigation::{Investigation, InvestigationsService};
 
 use anyhow::{anyhow, bail, Result};
 use chrono::Utc;
 use serde_json::json;
-pub struct InvalidateTokensService {
+pub struct RevokeInstancePermissionsService {
     instances: InstanceRepo,
     roles: RoleRepo,
     investigations: InvestigationsService,
+    tags: TagRepo,
 }
 
-impl InvalidateTokensService {
+impl RevokeInstancePermissionsService {
     pub fn new(investigation_bucket: &str) -> Self {
         Self {
             instances: InstanceRepo::new(),
             roles: RoleRepo::new(),
             investigations: InvestigationsService::new(investigation_bucket),
+            tags: TagRepo::new(),
         }
     }
 
-    pub async fn get_roles(&self, investigation_id: &str) -> Result<(String, Vec<String>)> {
-        let investigation = self
-            .investigations
+    pub async fn get_investigation(&self, investigation_id: &str) -> Result<Investigation> {
+        self.investigations
             .get_investigation(investigation_id)
-            .await?;
+            .await
+    }
 
-        let tags = match self
+    pub async fn remove_profile(&self, instance_id: &str) -> Result<String> {
+        let instance = self.instances.get_instance(instance_id).await?;
+
+        let profile = match instance.iam_instance_profile {
+            Some(p) => p
+                .arn
+                .ok_or(anyhow!("Instance profile does not have an ARN"))?,
+            None => return Ok(String::new()),
+        };
+
+        let profile_name = &profile[(profile
+            .find("/")
+            .ok_or(anyhow!("Expected / in profile ARN"))?
+            + 1)..];
+
+        let assoc = match self
             .instances
-            .get_instance(&investigation.instance_id)
+            .get_profile_association(&instance_id)
             .await?
-            .tags
+            .association_id
         {
+            Some(assoc) => assoc,
+            None => bail!("Instance has a profile but could not find association id"),
+        };
+
+        self.tags
+            .create_tag(instance_id, "claire_removed_profile", &profile_name)
+            .await?;
+        self.instances.remove_instance_profile(&assoc).await?;
+
+        Ok(profile_name.to_string())
+    }
+
+    pub async fn get_roles(&self, instance_id: &str) -> Result<Vec<String>> {
+        let tags = match self.instances.get_instance(&instance_id).await?.tags {
             Some(tags) => tags,
             None => bail!("Cannot determine previous profile, the instance has no tags."),
         };
@@ -54,7 +86,7 @@ impl InvalidateTokensService {
             .map(|r| r.role_name.clone())
             .collect::<Vec<String>>();
 
-        Ok((investigation.bucket, role_names))
+        Ok(role_names)
     }
 
     pub async fn invalidate_tokens(&self, roles: &Vec<String>) -> Result<()> {

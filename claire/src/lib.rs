@@ -15,7 +15,7 @@ use service::investigation::InvestigationsService;
 use service::isolate::IsolateInstanceService;
 use service::manual::ManualInvestigationService;
 use service::purge::PurgeService;
-use service::token::InvalidateTokensService;
+use service::revoke::RevokeInstancePermissionsService;
 use std::io::{stdin, stdout, Write};
 use std::thread::sleep;
 use std::time::Duration;
@@ -241,11 +241,25 @@ pub async fn manual_investigation(
     Ok(())
 }
 
-pub async fn invalidate_tokens(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
-    let service = InvalidateTokensService::new(investigation_bucket);
-    let (investigation_id, roles) = service.get_roles(investigation_id).await?;
+pub async fn revoke_access(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
+    let service = RevokeInstancePermissionsService::new(investigation_bucket);
+    let investigation = service.get_investigation(investigation_id).await?;
+    println!("Found investigation {}", investigation.bucket);
 
-    println!("Found investigation {}", investigation_id);
+    let profile = service.remove_profile(&investigation.instance_id).await?;
+    if profile.is_empty() {
+        println!(
+            "Instance {} does not have a profile",
+            investigation.instance_id
+        )
+    } else {
+        println!(
+            "Profile {} was removed from instance {}",
+            profile, investigation.instance_id
+        );
+    }
+
+    let roles = service.get_roles(&investigation.instance_id).await?;
     if roles.is_empty() {
         bail!("There are no tokens to invalidate because the profile does not have any roles assigned.");
     }

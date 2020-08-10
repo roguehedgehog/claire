@@ -5,4 +5,4 @@ pub mod investigation;
 pub mod isolate;
 pub mod manual;
 pub mod purge;
-pub mod token;
+pub mod revoke;

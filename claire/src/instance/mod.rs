@@ -7,8 +7,9 @@ use anyhow::{anyhow, bail, Result};
 use bytes::Bytes;
 use rusoto_core::Region;
 use rusoto_ec2::{
-    AttachVolumeRequest, CreateVolumeRequest, DescribeInstancesRequest, DescribeVolumesRequest,
-    Ec2, Ec2Client, Instance, Volume,
+    AttachVolumeRequest, CreateVolumeRequest, DescribeIamInstanceProfileAssociationsRequest,
+    DescribeInstancesRequest, DescribeVolumesRequest, DisassociateIamInstanceProfileRequest, Ec2,
+    Ec2Client, Filter, IamInstanceProfileAssociation, Instance, Volume,
 };
 use rusoto_lambda::{InvocationRequest, Lambda, LambdaClient};
 use serde_json::json;
@@ -175,5 +176,42 @@ impl InstanceRepo {
         }
 
         bail!("The investigation for {} could not be found", instance_id);
+    }
+
+    pub async fn get_profile_association(
+        &self,
+        instance_id: &str,
+    ) -> Result<IamInstanceProfileAssociation> {
+        let req = DescribeIamInstanceProfileAssociationsRequest {
+            filters: Some(vec![Filter {
+                name: Some("instance-id".to_string()),
+                values: Some(vec![instance_id.to_string()]),
+            }]),
+            ..Default::default()
+        };
+
+        let resp = self
+            .ec2
+            .describe_iam_instance_profile_associations(req)
+            .await?
+            .iam_instance_profile_associations
+            .ok_or(anyhow!(
+                "No profile associations could be found for instance {}",
+                instance_id
+            ))?;
+
+        let assoc = resp
+            .get(0)
+            .ok_or(anyhow!("Could not get first profile association"))?;
+
+        Ok(assoc.clone())
+    }
+
+    pub async fn remove_instance_profile(&self, assoc_id: &str) -> Result<()> {
+        let req = DisassociateIamInstanceProfileRequest {
+            association_id: assoc_id.to_string(),
+        };
+        self.ec2.disassociate_iam_instance_profile(req).await?;
+        Ok(())
     }
 }
