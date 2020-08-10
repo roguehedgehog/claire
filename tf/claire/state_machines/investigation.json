@@ -4,13 +4,13 @@
         "CreateInvestigation": {
             "Type": "Task",
             "Resource": "${create_investigation}",
-            "Next": "CanInvestigationProceed",
+            "Next": "IsInvestigationCreated",
             "Parameters": {
                 "execution_arn.$": "$$.Execution.Id",
                 "payload.$": "$"
             }
         },
-        "CanInvestigationProceed": {
+        "IsInvestigationCreated": {
             "Type": "Choice",
             "Choices": [
                 {
