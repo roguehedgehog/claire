@@ -36,11 +36,16 @@ class InvestigationCreationService:
 
         investigation_id = self.create_investigation(instance_id, event,
                                                      execution_id)
+        try:
+            severity = event["detail"]["severity"]
+        except KeyError:
+            severity = 0
 
         return {
             "investigation_id": investigation_id,
             "instance_id": instance_id,
             "execution_arn": execution_id,
+            "severity": severity,
             "err": "",
         }
 
@@ -50,10 +55,6 @@ class InvestigationCreationService:
                     "InvalidInput")
 
         try:
-            if event["detail"]["resource"]["resourceType"] != "Instance":
-                return (False, "The alert in not for an instance",
-                        "InvalidInput")
-
             instance_id = event["detail"]["resource"]["instanceDetails"][
                 "instanceId"]
 

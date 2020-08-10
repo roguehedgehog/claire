@@ -57,6 +57,7 @@ data "aws_iam_policy_document" "isolate_instance" {
     actions = [
       "ec2:DescribeInstances",
       "ec2:ModifyInstanceAttribute",
+      "ec2:CreateTags",
     ]
     resources = ["*"]
   }

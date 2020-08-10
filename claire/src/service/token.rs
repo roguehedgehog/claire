@@ -1,4 +1,4 @@
-use crate::access::RoleRepo;
+use crate::access::role::RoleRepo;
 use crate::instance::InstanceRepo;
 use crate::service::investigation::InvestigationsService;
 

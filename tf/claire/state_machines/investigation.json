@@ -85,11 +85,27 @@
                     }
                 },
                 {
-                    "StartAt": "IsolateInstance",
+                    "StartAt": "InstanceRequiresQuarantine",
                     "States": {
+                        "InstanceRequiresQuarantine": {
+                            "Type": "Choice",
+                            "Choices": [
+                                {
+                                    "Variable": "$.severity",
+                                    "NumericGreaterThan": ${instance_isolation_threshold
+                                    },
+                                    "Next": "IsolateInstance"
+                                }
+                            ],
+                            "Default": "SkipIsolation"
+                        },
                         "IsolateInstance": {
                             "Type": "Task",
                             "Resource": "${isolate_instance}",
+                            "End": true
+                        },
+                        "SkipIsolation": {
+                            "Type": "Pass",
                             "End": true
                         }
                     }

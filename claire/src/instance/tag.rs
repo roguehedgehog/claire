@@ -3,7 +3,8 @@ extern crate rusoto_ec2;
 use anyhow::Result;
 use rusoto_core::Region;
 use rusoto_ec2::{
-    DeleteTagsRequest, DescribeTagsRequest, Ec2, Ec2Client, Filter, Tag, TagDescription,
+    CreateTagsRequest, DeleteTagsRequest, DescribeTagsRequest, Ec2, Ec2Client, Filter, Tag,
+    TagDescription,
 };
 
 pub struct TagRepo {
@@ -34,6 +35,21 @@ impl TagRepo {
         }
 
         Ok(resources)
+    }
+
+    pub async fn create_tag(&self, resource_id: &str, key: &str, value: &str) -> Result<()> {
+        let req = CreateTagsRequest {
+            resources: vec![resource_id.to_string()],
+            tags: vec![Tag {
+                key: Some(key.to_string()),
+                value: Some(value.to_string()),
+            }],
+            ..Default::default()
+        };
+
+        self.client.create_tags(req).await?;
+
+        Ok(())
     }
 
     pub async fn delete_tags(&self, resources: &Vec<Resource>, tags: &Vec<&str>) -> Result<()> {

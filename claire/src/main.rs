@@ -1,18 +1,22 @@
-#[macro_use]
-extern crate clap;
-extern crate tokio;
-
 use anyhow::Result;
 use claire::{
     clear_investigation, download_investigation, invalidate_tokens, investigation_status,
-    list_investigations, manual_investigation, purge_investigation, start_investigation,
+    isolate_instance, list_investigations, manual_investigation, purge_investigation,
+    start_investigation,
 };
-use clap::{App, Arg, ArgMatches, SubCommand};
+use clap::{crate_authors, crate_name, crate_version, App, Arg, ArgMatches, SubCommand};
+use env_logger::Env;
 
 #[tokio::main]
 async fn main() -> Result<()> {
     let app = create_app();
     let args = app.get_matches();
+
+    env_logger::init_from_env(
+        Env::default()
+            .filter_or("CLAIRE_LOG_LEVEL", "info")
+            .write_style_or("CLAIRE_LOG_STYLE", "always"),
+    );
 
     if let Some(args) = args.subcommand_matches("clear") {
         return clear_investigation(get(args, "investigation_id")).await;
@@ -38,6 +42,14 @@ async fn main() -> Result<()> {
 
     if let Some(args) = args.subcommand_matches("invalidate-tokens") {
         return invalidate_tokens(
+            get(args, "investigation_bucket"),
+            get(args, "investigation_id"),
+        )
+        .await;
+    }
+
+    if let Some(args) = args.subcommand_matches("isolate") {
+        return isolate_instance(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
@@ -82,7 +94,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .long("bucket")
         .env("INVESTIGATION_BUCKET")
         .required(true)
-        .help(
+        .long_help(
             "The name of the S3 bucket where evidence is stored, i.e. [your-prefix]-investigations.",
         );
 
@@ -128,6 +140,14 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 .arg(&id)
                 .arg(&bucket)
                 .about("Invalidate any tokens that may have been stolen."),
+        )
+        .subcommand(
+            SubCommand::with_name("isolate")
+                .arg(&id)
+                .arg(&bucket)
+                .about(
+                    "Apply restrictive security group, add NCL entry and remove instance profile",
+                ),
         )
         .subcommand(
             SubCommand::with_name("list")

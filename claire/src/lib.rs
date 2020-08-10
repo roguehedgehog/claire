@@ -12,6 +12,7 @@ use service::clear::ClearInvestigationService;
 use service::download::DownloadService;
 use service::exec::ExecuteInvestigationService;
 use service::investigation::InvestigationsService;
+use service::isolate::IsolateInstanceService;
 use service::manual::ManualInvestigationService;
 use service::purge::PurgeService;
 use service::token::InvalidateTokensService;
@@ -264,6 +265,18 @@ pub async fn invalidate_tokens(investigation_bucket: &str, investigation_id: &st
     service.invalidate_tokens(&roles).await?;
 
     println!("ClaireInvalidateTokens inline policy added to roles");
+
+    Ok(())
+}
+
+pub async fn isolate_instance(investigation_bucket: &str, investigation_id: &str) -> Result<()> {
+    let service = IsolateInstanceService::new(investigation_bucket);
+    let investigation = service.isolate(investigation_id).await?;
+
+    println!(
+        "The instance {} has been contained",
+        investigation.instance_id
+    );
 
     Ok(())
 }

@@ -23,6 +23,7 @@ data "template_file" "claire_investigation_state_machine" {
     snapshot_volumes_ready       = aws_lambda_function.snapshot_volumes_ready.arn
     capture_volumes              = aws_lambda_function.capture_volumes.arn
     terminate_evidence_extractor = aws_lambda_function.terminate_evidence_extractor.arn
+    instance_isolation_threshold = var.instance_isolation_threshold
   }
 }
 
