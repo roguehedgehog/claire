@@ -24,10 +24,11 @@ impl ExecuteInvestigationService {
         }
     }
 
-    pub async fn start(&self, instance_id: &str, reason: &str) -> Result<String> {
+    pub async fn start(&self, instance_id: &str, reason: &str, isolate: bool) -> Result<String> {
         let req = StartInvestigationRequest {
             instance_id: instance_id.to_string(),
             reason: reason.to_string(),
+            isolate,
         };
 
         Ok(self.state_machine_repo.start_investigation(&req).await?)

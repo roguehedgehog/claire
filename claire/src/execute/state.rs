@@ -16,20 +16,22 @@ const CLAIRE_STATE_MACHINE: &str = "claire_investigation";
 pub struct StartInvestigationRequest {
     pub instance_id: String,
     pub reason: String,
+    pub isolate: bool,
 }
 
 impl StartInvestigationRequest {
     pub fn as_json(&self) -> String {
         return json!({
+            "reason": self.reason,
             "detail": {
                 "resource": {
                     "resourceType": "Instance",
                     "instanceDetails": {
                         "instanceId": self.instance_id,
                     }
-                }
+                },
+                "severity": if self.isolate { 10 } else { 0 },
             },
-            "reason": self.reason,
         })
         .to_string();
     }

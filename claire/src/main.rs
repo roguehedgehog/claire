@@ -36,6 +36,7 @@ async fn main() -> Result<()> {
             get(args, "investigation_bucket"),
             get(args, "instance_id"),
             get(args, "reason"),
+            args.is_present("isolate"),
         )
         .await;
     }
@@ -133,6 +134,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                         .help("The reason for the investigation"),
                 )
                 .arg(&bucket)
+                .arg(Arg::with_name("isolate").short("i").long("isolate"))
                 .about("Starts an investigation into the given instance"),
         )
         .subcommand(SubCommand::with_name("revoke").arg(&id).arg(&bucket).about(

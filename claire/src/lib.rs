@@ -111,9 +111,10 @@ pub async fn start_investigation(
     investigation_bucket: &str,
     instance_id: &str,
     reason: &str,
+    isolate: bool,
 ) -> Result<()> {
     let service = ExecuteInvestigationService::new(investigation_bucket);
-    let execution_id = service.start(instance_id, reason).await?;
+    let execution_id = service.start(instance_id, reason, isolate).await?;
 
     println!("Investigation started: {}", execution_id);
     let mut refresh = true;
