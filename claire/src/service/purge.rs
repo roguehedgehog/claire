@@ -6,6 +6,7 @@ use crate::service::investigation::InvestigationsService;
 use crate::storage::bucket::BucketRepo;
 use crate::INVESTIGATION_TAG_KEY;
 use anyhow::Result;
+use futures::try_join;
 
 use rusoto_s3::Object;
 
@@ -50,11 +51,12 @@ impl PurgeService {
         resources: &Vec<Resource>,
         evidence: &Vec<Object>,
     ) -> Result<()> {
-        ClearInvestigationService::new()
-            .untag_resources(resources)
-            .await?;
-        self.delete_snapshots(resources).await?;
-        self.delete_objects(evidence).await?;
+        let service = ClearInvestigationService::new();
+        let clear = service.untag_resources(resources);
+        let rm_snapshots = self.delete_snapshots(resources);
+        let rm_objects = self.delete_objects(evidence);
+
+        try_join!(clear, rm_snapshots, rm_objects)?;
 
         Ok(())
     }
