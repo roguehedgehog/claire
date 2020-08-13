@@ -121,7 +121,7 @@
                     "ErrorEquals": [
                         "States.TaskFailed"
                     ],
-                    "Next": "TerminateExtractorInstance"
+                    "Next": "TerminateExtractorInstanceOnFailure"
                 }
             ],
             "Branches": [
@@ -345,15 +345,24 @@
                     }
                 }
             ],
-            "Next": "TerminateExtractorInstance"
+            "Next": "TerminateExtractorInstanceOnSuccess"
         },
-        "TerminateExtractorInstance": {
+        "TerminateExtractorInstanceOnSuccess": {
             "Type": "Task",
             "Resource": "${terminate_evidence_extractor}",
             "Next": "Success"
         },
         "Success": {
             "Type": "Succeed"
+        },
+        "TerminateExtractorInstanceOnFailure": {
+            "Type": "Task",
+            "Resource": "${terminate_evidence_extractor}",
+            "Next": "ProcessFailed"
+        },
+        "ProcessFailed": {
+            "Type": "Fail",
+            "Cause": "Process Failed see failed step for details"
         },
         "InvalidInput": {
             "Type": "Fail",
