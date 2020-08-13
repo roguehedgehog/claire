@@ -1,8 +1,8 @@
 use anyhow::Result;
 use claire::{
-    clear_investigation, download_investigation, investigation_status, isolate_instance,
-    list_investigations, manual_investigation, purge_investigation, revoke_access,
-    start_investigation,
+    clear_investigation, download_investigation, expire_tokens, investigation_status,
+    isolate_instance, list_investigations, manual_investigation, purge_investigation,
+    revoke_access, start_investigation,
 };
 use clap::{crate_authors, crate_name, crate_version, App, Arg, ArgMatches, SubCommand};
 use env_logger::Env;
@@ -41,14 +41,6 @@ async fn main() -> Result<()> {
         .await;
     }
 
-    if let Some(args) = args.subcommand_matches("revoke") {
-        return revoke_access(
-            get(args, "investigation_bucket"),
-            get(args, "investigation_id"),
-        )
-        .await;
-    }
-
     if let Some(args) = args.subcommand_matches("isolate") {
         return isolate_instance(
             get(args, "investigation_bucket"),
@@ -70,17 +62,29 @@ async fn main() -> Result<()> {
         .await;
     }
 
-    if let Some(args) = args.subcommand_matches("status") {
-        return investigation_status(get(args, "investigation_bucket"), get(args, "instance_id"))
-            .await;
-    }
-
     if let Some(args) = args.subcommand_matches("purge") {
         return purge_investigation(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
         .await;
+    }
+
+    if let Some(args) = args.subcommand_matches("revoke") {
+        return revoke_access(
+            get(args, "investigation_bucket"),
+            get(args, "investigation_id"),
+        )
+        .await;
+    }
+
+    if let Some(args) = args.subcommand_matches("status") {
+        return investigation_status(get(args, "investigation_bucket"), get(args, "instance_id"))
+            .await;
+    }
+
+    if let Some(args) = args.subcommand_matches("token-expire") {
+        return expire_tokens(get(args, "instance_profile")).await;
     }
 
     Ok(())
@@ -177,6 +181,14 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 .arg(&bucket)
                 .arg(&instance_id)
                 .about("View the status of an investigation"),
+        )
+        .subcommand(
+            SubCommand::with_name("token-expire")
+                .arg( Arg::with_name("instance_profile")
+                .takes_value(true)
+                .required(true)
+                .help("The name of the instance profile"),)
+                .about("Find all the roles assosciated with an instance profile and expire their tokens."),
         )
 }
 

@@ -260,7 +260,32 @@ pub async fn revoke_access(investigation_bucket: &str, investigation_id: &str) -
         );
     }
 
-    let roles = service.get_roles(&investigation.instance_id).await?;
+    let roles = service
+        .get_roles_by_instance(&investigation.instance_id)
+        .await?;
+    if roles.is_empty() {
+        bail!("There are no tokens to invalidate because the profile does not have any roles assigned.");
+    }
+
+    service
+        .deny_instance(&roles, &investigation.instance_id)
+        .await?;
+
+    println!(
+        "These roles now have polcies which deny access to {}:\n",
+        investigation.instance_id
+    );
+
+    for role in &roles {
+        println!("{}", role);
+    }
+
+    Ok(())
+}
+
+pub async fn expire_tokens(profile: &str) -> Result<()> {
+    let service = RevokeInstancePermissionsService::new("");
+    let roles = service.get_roles_by_profile(&profile).await?;
     if roles.is_empty() {
         bail!("There are no tokens to invalidate because the profile does not have any roles assigned.");
     }
