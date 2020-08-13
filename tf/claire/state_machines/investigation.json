@@ -116,6 +116,14 @@
         },
         "GatherEvidence": {
             "Type": "Parallel",
+            "Catch": [
+                {
+                    "ErrorEquals": [
+                        "States.TaskFailed"
+                    ],
+                    "Next": "TerminateExtractorInstance"
+                }
+            ],
             "Branches": [
                 {
                     "StartAt": "PrepareMemoryVolume",

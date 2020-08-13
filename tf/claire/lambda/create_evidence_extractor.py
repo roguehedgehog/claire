@@ -164,6 +164,13 @@ def lambda_is_extractor_ready(event: object, _):
 
 
 def lambda_terminate_extractor(event: object, _):
-    terminate_instance(event[0]["investigation_id"], event[0]["extractor_id"])
+    try:
+        investigation_id = event[0]["investigation_id"]
+        extractor_id = event[0]["extractor_id"]
+    except KeyError:
+        investigation_id = event["investigation_id"]
+        extractor_id = event["extractor_id"]
+
+    terminate_instance(investigation_id, extractor_id)
 
     return event
