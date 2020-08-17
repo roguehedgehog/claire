@@ -23,7 +23,7 @@ resource "aws_instance" "lab" {
 }
 
 resource "aws_security_group" "lab_security_group" {
-  name   = "clare_lab_security_group"
+  name   = "claire_lab_security_group"
   vpc_id = aws_vpc.lab_vpc.id
 
   ingress {

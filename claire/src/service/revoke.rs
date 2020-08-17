@@ -77,7 +77,7 @@ impl RevokeInstancePermissionsService {
             &profile
                 .value
                 .clone()
-                .ok_or(anyhow!("tag clare_remove_profile is None"))?,
+                .ok_or(anyhow!("tag claire_remove_profile is None"))?,
         )
         .await
     }
@@ -95,7 +95,7 @@ impl RevokeInstancePermissionsService {
     }
 
     pub async fn deny_instance(&self, roles: &Vec<String>, instance_id: &str) -> Result<()> {
-        let policy_name = format!("ClareDenyInstance_{}", instance_id);
+        let policy_name = format!("ClaireDenyInstance_{}", instance_id);
         let invalidate_tokens = json!({
             "Version": "2012-10-17",
             "Statement": [{

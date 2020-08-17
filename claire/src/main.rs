@@ -113,7 +113,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .author(crate_authors!())
         .about("Initialate, manage and clear CLAIRE investigations")
         .subcommand(SubCommand::with_name("clear").arg(&id).about(
-            "Removes the CLARE tags from investigated resources \
+            "Removes the CLAIRE tags from investigated resources \
              use this command to clear the investigation but leave the collected evidence",
         ))
         .subcommand(

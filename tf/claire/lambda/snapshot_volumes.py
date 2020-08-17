@@ -49,7 +49,7 @@ class SnapshotCreationService:
 
         self.logger("Creating snapshot for volume {}".format(volume_id))
         resp = self.ec2.create_snapshot(
-            Description="Created by CLARE for investigation {}".format(
+            Description="Created by CLAIRE for investigation {}".format(
                 investigation_id),
             VolumeId=volume_id,
             TagSpecifications=[{

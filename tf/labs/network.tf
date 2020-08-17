@@ -93,7 +93,7 @@ resource "aws_vpc_endpoint_subnet_association" "ssmmessages" {
 resource "aws_security_group" "vpc_endpoints" {
   count = var.create_vpc_endpoints
 
-  name   = "clare_lab_vpc_endpoints"
+  name   = "claire_lab_vpc_endpoints"
   vpc_id = aws_vpc.lab_vpc.id
 
   ingress {
