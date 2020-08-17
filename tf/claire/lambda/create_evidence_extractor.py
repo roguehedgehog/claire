@@ -60,7 +60,7 @@ def create_extractor_instance(investigation_id: str):
 
     extractor = ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
-        InstanceType="t2.small",
+        InstanceType=instance["InstanceType"],
         MinCount=1,
         MaxCount=1,
         InstanceInitiatedShutdownBehavior="terminate",
@@ -79,8 +79,7 @@ def create_extractor_instance(investigation_id: str):
             "DeviceName": "/dev/sda1",
             "Ebs": {
                 "VolumeSize":
-                8 + max(instance_service.get_volumes(instance),
-                        key=lambda v: v["Size"])["Size"]
+                8 + round(instance_service.get_memory_size(instance) / 1000)
             }
         }, {
             "DeviceName": "/dev/sdm",
