@@ -121,7 +121,8 @@
                     "ErrorEquals": [
                         "States.TaskFailed"
                     ],
-                    "Next": "TerminateExtractorInstanceOnFailure"
+                    "Next": "TerminateExtractorInstanceOnFailure",
+                    "ResultPath": null
                 }
             ],
             "Branches": [
