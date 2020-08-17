@@ -11,11 +11,13 @@ data "aws_iam_policy_document" "create_investigation" {
   statement {
     effect = "Allow"
     actions = [
+      "s3:ListBucket",
       "s3:PutObject",
       "s3:PutObjectTagging",
       "s3:GetObjectTagging",
     ]
     resources = [
+      "${aws_s3_bucket.investigation_bucket.arn}",
       "${aws_s3_bucket.investigation_bucket.arn}/*"
     ]
   }
@@ -290,11 +292,11 @@ resource "aws_iam_role_policy" "claire_ec2_evidence_extractor_s3_access" {
   policy = data.aws_iam_policy_document.create_investigation.json
 }
 
-data "aws_iam_policy" "AmazonEc2RoleForSSM" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+data "aws_iam_policy" "AmazonSSMManagedInstanceCore" {
+  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "evidence_extractor_ssm_access" {
   role       = aws_iam_role.claire_ec2_evidence_extractor_role.id
-  policy_arn = data.aws_iam_policy.AmazonEc2RoleForSSM.arn
+  policy_arn = data.aws_iam_policy.AmazonSSMManagedInstanceCore.arn
 }

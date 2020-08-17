@@ -23,13 +23,13 @@ data "aws_iam_policy_document" "lab_role" {
   }
 }
 
-data "aws_iam_policy" "AmazonEc2RoleForSSM" {
-  arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+data "aws_iam_policy" "AmazonSSMManagedInstanceCore" {
+  arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 resource "aws_iam_role_policy_attachment" "lab_ssm_access" {
   role       = aws_iam_role.lab_role.id
-  policy_arn = data.aws_iam_policy.AmazonEc2RoleForSSM.arn
+  policy_arn = data.aws_iam_policy.AmazonSSMManagedInstanceCore.arn
 }
 
 data "aws_iam_policy_document" "allow_all_s3_access" {
