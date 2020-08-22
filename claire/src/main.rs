@@ -27,6 +27,7 @@ async fn main() -> Result<()> {
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
             get(args, "destination"),
+            args.is_present("skip_memory"),
         )
         .await;
     }
@@ -124,6 +125,9 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                         .required(true)
                         .takes_value(true)
                         .help("The destination to download the investigation data"),
+                )
+                .arg(
+                    Arg::with_name("skip_memory").short("s").long("skip-memory")
                 )
                 .arg(&bucket)
                 .about("Download investigation evidence to a local directory"),

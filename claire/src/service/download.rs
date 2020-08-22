@@ -15,14 +15,19 @@ impl DownloadService {
         }
     }
 
-    pub async fn download(&self, investigation_id: &str, dest: &str) -> Result<()> {
+    pub async fn download(
+        &self,
+        investigation_id: &str,
+        dest: &str,
+        skip_memory: bool,
+    ) -> Result<()> {
         let investigation = self
             .investigation_service
             .get_investigation(investigation_id)
             .await?;
 
-        Command::new("aws")
-            .stdout(Stdio::inherit())
+        let mut cmd = Command::new("aws");
+        cmd.stdout(Stdio::inherit())
             .stderr(Stdio::inherit())
             .arg("s3")
             .arg("sync")
@@ -30,8 +35,13 @@ impl DownloadService {
                 "s3://{}/{}",
                 self.investigation_bucket, investigation.bucket
             ))
-            .arg(format!("{}/{}/", dest, investigation.bucket))
-            .spawn()
+            .arg(format!("{}/{}/", dest, investigation.bucket));
+
+        if skip_memory {
+            cmd.arg("--exclude").arg("*/memory.lime.compressed");
+        }
+
+        cmd.spawn()
             .with_context(|| "Failed to use awscli to download investigation assets")?
             .wait()?;
 

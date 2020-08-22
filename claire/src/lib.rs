@@ -43,9 +43,12 @@ pub async fn download_investigation(
     investigation_bucket: &str,
     investigation_id: &str,
     destination: &str,
+    skip_memory: bool,
 ) -> Result<()> {
     let service = DownloadService::new(investigation_bucket);
-    service.download(investigation_id, destination).await?;
+    service
+        .download(investigation_id, destination, skip_memory)
+        .await?;
 
     Ok(())
 }
