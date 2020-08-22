@@ -114,8 +114,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
         .author(crate_authors!())
         .about("Initialate, manage and clear CLAIRE investigations")
         .subcommand(SubCommand::with_name("clear").arg(&id).about(
-            "Removes the CLAIRE tags from investigated resources \
-             use this command to clear the investigation but leave the collected evidence",
+            "Removes the CLAIRE tags from investigated resources, clear the investigation but leave the collected evidence",
         ))
         .subcommand(
             SubCommand::with_name("download")
@@ -127,7 +126,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                         .help("The destination to download the investigation data"),
                 )
                 .arg(
-                    Arg::with_name("skip_memory").short("s").long("skip-memory")
+                    Arg::with_name("skip_memory").short("s").long("skip-memory").help("Do not download memory image")
                 )
                 .arg(&bucket)
                 .about("Download investigation evidence to a local directory"),
@@ -153,7 +152,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 .arg(&id)
                 .arg(&bucket)
                 .about(
-                    "Apply restrictive security group, add NCL entry and remove instance profile",
+                    "Remove existing security groups and apply restrictive security group",
                 ),
         )
         .subcommand(
