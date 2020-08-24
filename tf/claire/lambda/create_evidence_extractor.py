@@ -15,7 +15,7 @@ def create_manual_extractor(investigation_id: str, key_name: str):
 
     return ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
-        InstanceType="t2.small",
+        InstanceType="c5.large",
         MinCount=1,
         MaxCount=1,
         KeyName=key_name,
@@ -60,7 +60,7 @@ def create_extractor_instance(investigation_id: str):
 
     extractor = ec2.run_instances(
         ImageId=environ["EXTRACTOR_AMI_ID"],
-        InstanceType=instance["InstanceType"],
+        InstanceType="c5.large",
         MinCount=1,
         MaxCount=1,
         InstanceInitiatedShutdownBehavior="terminate",

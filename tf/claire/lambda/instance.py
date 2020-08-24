@@ -42,17 +42,6 @@ class InstanceService:
     def get_extractor_instance(self, investigation_id: str):
         return self.get_instance(investigation_id, "Worker")
 
-    def get_volumes(self, instance: object):
-        self.logger("Getting volumes")
-        resp = self.ec2.describe_volumes(
-            Filters=[{
-                "Name": "attachment.instance-id",
-                "Values": [instance["InstanceId"]],
-            }])
-        self.logger("Found {} volumes".format(len(resp["Volumes"])))
-
-        return resp["Volumes"]
-
     def get_memory_size(self, instance: object) -> int:
         self.logger("Getting memory for instance {}".format(
             instance["InstanceId"]))

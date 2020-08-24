@@ -18,7 +18,9 @@ def prepare_volume(extractor_id: str, investigation_id: str):
         Comment="CLAIRE Prepare Volume for Memory Capture of {}".format(
             extractor_id),
         TimeoutSeconds=3600,
-        Parameters={"commands": ["sudo memory_prepare_volume.sh /dev/xvdm"]},
+        Parameters={
+            "commands": ["sudo memory_prepare_volume.sh /dev/nvme1n1"]
+        },
         OutputS3BucketName=environ["INVESTIGATION_BUCKET"],
         OutputS3KeyPrefix="{}/cmd/prepare-memory-volume".format(
             investigation_id),
@@ -52,7 +54,8 @@ def capture_memory(instance_id: str, volume_id: str, investigation_id: str):
     return resp["Command"]["CommandId"]
 
 
-def run_memory_analysis(investigation_id: str, instance_id: str, bucket: str):
+def run_memory_analysis(investigation_id: str, instance_id: str, vol: str,
+                        bucket: str):
     ssm = client("ssm")
     get_logger(investigation_id)(
         "Sending memory upload commands to {}".format(instance_id))
@@ -64,7 +67,8 @@ def run_memory_analysis(investigation_id: str, instance_id: str, bucket: str):
         TimeoutSeconds=3600,
         Parameters={
             "commands": [
-                "sudo memory_analysis.sh /dev/xvdm 's3://{}/{}'".format(
+                "sudo memory_analysis.sh {} 's3://{}/{}'".format(
+                    vol,
                     bucket,
                     investigation_id,
                 )
@@ -112,6 +116,7 @@ def lambda_memory_analysis(event: object, _):
     event["running_command_id"] = run_memory_analysis(
         event["investigation_id"],
         event["extractor_id"],
+        event["memory_volume_id"],
         environ["INVESTIGATION_BUCKET"],
     )
 

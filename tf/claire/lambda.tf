@@ -75,6 +75,7 @@ resource "aws_lambda_function" "create_evidence_extractor" {
     }
   }
 
+  timeout          = 10
   publish          = true
   runtime          = "python3.8"
   filename         = data.archive_file.lambda_zip.output_path

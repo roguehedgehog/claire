@@ -21,8 +21,9 @@ class SnapshotCreationService:
         instance = self.instance_service.get_instance(investigation_id)
         return list(
             map(
-                lambda v: self.__snapshot(v["VolumeId"], investigation_id),
-                self.instance_service.get_volumes(instance),
+                lambda v: self.__snapshot(v["Ebs"]["VolumeId"],
+                                          investigation_id),
+                instance["BlockDeviceMappings"],
             ))
 
     def is_snapshot_complete(self, snapshot_ids: str):

@@ -2,7 +2,7 @@
 
 set -euo pipefail
 
-readonly DEVICE=$1
+readonly VOL=$1
 readonly DEST=$2
 readonly INVESTIGATION=/home/ubuntu/investigation/memory
 readonly IMG=/tmp/memory.lime
@@ -41,7 +41,8 @@ main () {
 }
 
 save_image() {
-    mount -o ro "${DEVICE}" /mnt/mem
+    local DEVICE="$(lsblk -o +SERIAL | grep ${VOL//-/} | awk -F ' ' '{print $1}')"
+    mount -o ro "/dev/${DEVICE}" /mnt/mem
     cp /mnt/mem/memory.lime.compressed "${INVESTIGATION}"
     umount /mnt/mem
 }

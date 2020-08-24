@@ -3,15 +3,16 @@
 set -euo pipefail
 
 readonly DIR=/home/ubuntu/investigation
-readonly DEVICE=$1
+readonly VOL=$1
 readonly NAME=$2
 
 main () {
-    mount -o ro "${DEVICE}" /mnt/vol
+    local DEVICE="$(lsblk -o +SERIAL | grep ${VOL//-/} | awk -F ' ' '{print $1}')"
+    mount -o ro "/dev/${DEVICE}p1" /mnt/vol
 
     extract_logs
     extract_artifacts
-    volume_timeline.sh "${DEVICE}" "root-${NAME}"
+    volume_timeline.sh "${VOL}" "root-${NAME}"
 
     umount /mnt/vol
 }

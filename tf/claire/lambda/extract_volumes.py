@@ -35,13 +35,13 @@ def capture_volumes(volumes: list, investigation_id: str, bucket: str) -> dict:
 
 def get_capture_commands(investigation_id: str, volumes: list) -> list:
     root_vol = volumes.pop(0)
-    capture_root = "sudo volume_root_capture.sh {}1 {}".format(
-        quote(root_vol["device"]),
-        root_vol["snapshot_id"],
+    capture_root = "sudo volume_root_capture.sh {} {}".format(
+        quote(root_vol["volume_id"]),
+        quote(root_vol["snapshot_id"]),
     )
     capture_others = map(
-        lambda vol: "sudo volume_timeline.sh {}1 {}".format(
-            quote(root_vol["device"]), root_vol["snapshot_id"]), volumes)
+        lambda vol: "sudo volume_timeline.sh {} {}".format(
+            quote(vol["volume_id"]), vol["snapshot_id"]), volumes)
 
     upload = "sudo aws s3 sync /home/ubuntu/investigation 's3://{}/{}/'".format(
         environ["INVESTIGATION_BUCKET"], investigation_id)

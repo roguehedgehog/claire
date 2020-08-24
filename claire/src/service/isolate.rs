@@ -70,7 +70,7 @@ impl IsolateInstanceService {
                 .await?;
         }
 
-        info!("Applying Secutiry Group {} to {}", locked_sg, instance_id);
+        info!("Applying Security Group {} to {}", locked_sg, instance_id);
         self.security_groups
             .set_group(&instance_id, &locked_sg)
             .await?;
