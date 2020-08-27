@@ -39,6 +39,7 @@ data "aws_iam_policy_document" "allow_all_s3_access" {
       "s3:*"
     ]
     resources = [
+      "${aws_s3_bucket.target_bucket.arn}",
       "${aws_s3_bucket.target_bucket.arn}/*"
     ]
   }
