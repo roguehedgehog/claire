@@ -275,7 +275,7 @@ pub async fn revoke_access(investigation_bucket: &str, investigation_id: &str) -
         .await?;
 
     println!(
-        "These roles now have polcies which deny access to {}:\n",
+        "These roles now have policies which deny access to {}:\n",
         investigation.instance_id
     );
 
