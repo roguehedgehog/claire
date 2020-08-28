@@ -6,18 +6,16 @@ mod storage;
 
 use anyhow::{bail, Result};
 use chrono::Utc;
-use execute::state::InvestigationStatus;
-use serde_json::to_string_pretty;
-use service::clear::ClearInvestigationService;
-use service::download::DownloadService;
-use service::exec::ExecuteInvestigationService;
-use service::investigation::InvestigationsService;
-use service::isolate::IsolateInstanceService;
-use service::manual::ManualInvestigationService;
-use service::purge::PurgeService;
-use service::revoke::RevokeInstancePermissionsService;
-use std::io::{stdin, stdout, Write};
-use std::thread::sleep;
+use execute::InvestigationStatus;
+use service::{
+    ClearInvestigationService, DownloadService, ExecuteInvestigationService, InvestigationsService,
+    IsolateInstanceService, ManualInvestigationService, PurgeService,
+    RevokeInstancePermissionsService,
+};
+
+use std::io;
+use std::io::Write;
+use std::thread;
 use std::time::Duration;
 
 static CLAIRE: &str = "CLAIRE";
@@ -135,7 +133,7 @@ pub async fn start_investigation(
         let status = service.last_update(&execution_id).await?;
         refresh = print_investigation_status(&status, &previous_status)?;
         if refresh {
-            sleep(Duration::from_secs(1));
+            thread::sleep(Duration::from_secs(1));
             previous_status = Some(status);
         }
     }
@@ -155,7 +153,7 @@ pub async fn investigation_status(investigation_bucket: &str, instance_id: &str)
         let status = service.last_update(&details.execution_arn).await?;
         refresh = print_investigation_status(&status, &previous_status)?;
         if refresh {
-            sleep(Duration::from_secs(1));
+            thread::sleep(Duration::from_secs(1));
             previous_status = Some(status);
         }
     }
@@ -179,7 +177,7 @@ fn print_investigation_status(
     } else {
         print!("\n{} {}", Utc::now(), current_status);
     }
-    if stdout().flush().is_err() {}
+    if io::stdout().flush().is_err() {}
 
     let refresh = match finished_status.iter().position(|s| s == &current.status) {
         Some(_) => false,
@@ -189,7 +187,7 @@ fn print_investigation_status(
     if !refresh && current.status == "ExecutionFailed" {
         println!(
             "Execution Failed with:\n{}",
-            to_string_pretty(&current.details).unwrap_or(String::new())
+            serde_json::to_string_pretty(&current.details).unwrap_or(String::new())
         )
     }
 
@@ -213,9 +211,9 @@ pub async fn manual_investigation(
     let mut instance_ready = false;
     let mut vols_ready = false;
     while !instance_ready || !vols_ready {
-        sleep(Duration::from_secs(1));
+        thread::sleep(Duration::from_secs(1));
         print!(".");
-        if stdout().flush().is_err() {}
+        if io::stdout().flush().is_err() {}
 
         if !instance_ready {
             instance_ready = service.is_instance_ready(&extractor).await?;
@@ -293,13 +291,13 @@ pub async fn expire_tokens(profile: &str) -> Result<()> {
         bail!("There are no tokens to invalidate because the profile does not have any roles assigned.");
     }
 
-    println!("These roles will have their existing tokens invalidated:\n");
+    println!("These roles will have their existing tokens invalidated:");
     for role in &roles {
         println!("{}", role);
     }
 
     println!("\n\
-    Invalidating tokens will require an app or user to clear their cached token(s) and generating new ones.\n\
+    Invalidating tokens will require an app or user to clear their cached token(s) and generate new ones.\n\
     Apps which get tokens through the EC2 meta-data service will have to wait for Amazon to refresh their tokens,\n\
     a manual refresh can be initialed by reapplying the instance profile to each affected instance.");
 
@@ -328,9 +326,9 @@ fn confirm() -> Result<()> {
     let mut input = String::new();
 
     print!("\nType `yes` to confirm these changes> ");
-    if stdout().flush().is_err() {}
+    if io::stdout().flush().is_err() {}
 
-    stdin().read_line(&mut input)?;
+    io::stdin().read_line(&mut input)?;
     if input.trim() != "yes" {
         bail!("Aboring");
     }

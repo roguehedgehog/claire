@@ -1,4 +1,4 @@
-use crate::instance::tag::{Resource, TagRepo};
+use crate::instance::{Resource, TagRepo};
 use crate::{CLAIRE, INVESTIGATION_TAG_KEY};
 
 use anyhow::Result;

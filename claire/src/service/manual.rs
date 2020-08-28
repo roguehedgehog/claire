@@ -1,5 +1,5 @@
-use crate::instance::tag::{Resource, TagRepo};
 use crate::instance::InstanceRepo;
+use crate::instance::{Resource, TagRepo};
 use crate::service::investigation::InvestigationsService;
 
 use anyhow::{anyhow, Result};

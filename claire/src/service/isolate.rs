@@ -1,6 +1,6 @@
-use crate::access::group::SecurityGroupRepo;
-use crate::instance::tag::TagRepo;
+use crate::access::SecurityGroupRepo;
 use crate::instance::InstanceRepo;
+use crate::instance::TagRepo;
 use crate::service::investigation::{Investigation, InvestigationsService};
 use log::info;
 use rusoto_ec2::Instance;

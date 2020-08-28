@@ -1,6 +1,6 @@
-use crate::execute::state::{InvestigationStatus, StartInvestigationRequest, StateMachineRepo};
+use crate::execute::{InvestigationStatus, StartInvestigationRequest, StateMachineRepo};
 use crate::instance::InstanceRepo;
-use crate::storage::bucket::BucketRepo;
+use crate::storage::BucketRepo;
 
 use anyhow::{bail, Result};
 

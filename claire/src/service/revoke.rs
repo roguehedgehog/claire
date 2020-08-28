@@ -1,6 +1,6 @@
-use crate::access::role::RoleRepo;
-use crate::instance::tag::TagRepo;
+use crate::access::RoleRepo;
 use crate::instance::InstanceRepo;
+use crate::instance::TagRepo;
 use crate::service::investigation::{Investigation, InvestigationsService};
 
 use anyhow::{anyhow, bail, Result};

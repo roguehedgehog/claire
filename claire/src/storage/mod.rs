@@ -1,1 +1,3 @@
-pub mod bucket;
+mod bucket;
+
+pub use self::bucket::BucketRepo;

@@ -1,9 +1,5 @@
 use anyhow::Result;
-use claire::{
-    clear_investigation, download_investigation, expire_tokens, investigation_status,
-    isolate_instance, list_investigations, manual_investigation, purge_investigation,
-    revoke_access, start_investigation,
-};
+use claire;
 use clap::{crate_authors, crate_name, crate_version, App, Arg, ArgMatches, SubCommand};
 use env_logger::Env;
 
@@ -19,11 +15,11 @@ async fn main() -> Result<()> {
     );
 
     if let Some(args) = args.subcommand_matches("clear") {
-        return clear_investigation(get(args, "investigation_id")).await;
+        return claire::clear_investigation(get(args, "investigation_id")).await;
     }
 
     if let Some(args) = args.subcommand_matches("download") {
-        return download_investigation(
+        return claire::download_investigation(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
             get(args, "destination"),
@@ -33,7 +29,7 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("investigate") {
-        return start_investigation(
+        return claire::start_investigation(
             get(args, "investigation_bucket"),
             get(args, "instance_id"),
             get(args, "reason"),
@@ -43,7 +39,7 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("isolate") {
-        return isolate_instance(
+        return claire::isolate_instance(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
@@ -51,11 +47,11 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("list") {
-        return list_investigations(get(args, "investigation_bucket")).await;
+        return claire::list_investigations(get(args, "investigation_bucket")).await;
     }
 
     if let Some(args) = args.subcommand_matches("manual") {
-        return manual_investigation(
+        return claire::manual_investigation(
             get(args, "investigation_id"),
             get(args, "investigation_bucket"),
             get(args, "key_name"),
@@ -64,7 +60,7 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("purge") {
-        return purge_investigation(
+        return claire::purge_investigation(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
@@ -72,7 +68,7 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("revoke") {
-        return revoke_access(
+        return claire::revoke_access(
             get(args, "investigation_bucket"),
             get(args, "investigation_id"),
         )
@@ -80,12 +76,15 @@ async fn main() -> Result<()> {
     }
 
     if let Some(args) = args.subcommand_matches("status") {
-        return investigation_status(get(args, "investigation_bucket"), get(args, "instance_id"))
-            .await;
+        return claire::investigation_status(
+            get(args, "investigation_bucket"),
+            get(args, "instance_id"),
+        )
+        .await;
     }
 
     if let Some(args) = args.subcommand_matches("token-expire") {
-        return expire_tokens(get(args, "instance_profile")).await;
+        return claire::expire_tokens(get(args, "instance_profile")).await;
     }
 
     Ok(())

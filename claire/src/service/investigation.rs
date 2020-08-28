@@ -1,4 +1,4 @@
-use crate::storage::bucket::BucketRepo;
+use crate::storage::BucketRepo;
 use anyhow::{anyhow, bail, Context, Result};
 use chrono::NaiveDateTime;
 #[derive(Debug, Clone)]

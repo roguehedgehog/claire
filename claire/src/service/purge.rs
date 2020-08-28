@@ -1,9 +1,9 @@
-use crate::instance::snapshot::SnapshotRepo;
-use crate::instance::tag::Resource;
-use crate::instance::tag::TagRepo;
+use crate::instance::Resource;
+use crate::instance::SnapshotRepo;
+use crate::instance::TagRepo;
 use crate::service::clear::ClearInvestigationService;
 use crate::service::investigation::InvestigationsService;
-use crate::storage::bucket::BucketRepo;
+use crate::storage::BucketRepo;
 use crate::INVESTIGATION_TAG_KEY;
 use anyhow::Result;
 use futures::try_join;
