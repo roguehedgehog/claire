@@ -190,7 +190,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
                 .takes_value(true)
                 .required(true)
                 .help("The name of the instance profile"),)
-                .about("Find all the roles assosciated with an instance profile and expire their tokens."),
+                .about("Find the role assosciated with an instance profile and expire tokens."),
         )
 }
 
