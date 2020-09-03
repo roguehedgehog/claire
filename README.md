@@ -16,7 +16,7 @@ AWS Step Functions and Lambdas written in Python to respond to incidents on EC2 
         [generate a timeline](tf/claire/evidence_extractor/bin/volume_timeline.sh) with [The Sleuth Kit](https://github.com/sleuthkit/sleuthkit)
   - Uses [Volatility](https://github.com/volatilityfoundation/volatility) to perform [memory analysis](tf/claire/evidence_extractor/bin/memory_analysis.sh)
   
-  All the evidence is saved an S3 bucket.
+  All the evidence is saved to a S3 bucket.
   
  There is a [CLI written in Rust](claire), to trigger the incident response process, manage the investigations, and can also invalidate instance credentials.
  
@@ -37,7 +37,7 @@ AWS Step Functions and Lambdas written in Python to respond to incidents on EC2 
     token-expire    Find the role assosciated with an instance profile and expire their tokens.
 ```
 
-And finally there are the labs I used to [test claire](bin/lab-exploits), this is an instance with Drupal 8.50 installed on it vulnerable to 
+And finally there are the [labs](tf/labs) I used to [test claire](bin/lab-exploits), this is an instance with Drupal 8.50 installed on it vulnerable to 
 CVE-2018-7600 on port 80 and a open forward proxy on port 81 used to access the Instance MetaData Service. 
 AWS GuardDuty can [optionally be enabled](tf/claire/variables.tf#L31) which will detect these [exploits](bin/exploits) and automatically run the incident response process. 
 
