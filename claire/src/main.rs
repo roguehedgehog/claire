@@ -97,7 +97,7 @@ fn create_app<'a, 'b>() -> App<'a, 'b> {
 
     let bucket = Arg::with_name("investigation_bucket")
         .long("bucket")
-        .env("INVESTIGATION_BUCKET")
+        .env("CLAIRE_BUCKET")
         .required(true)
         .long_help(
             "The name of the S3 bucket where evidence is stored, i.e. [your-prefix]-investigations.",
