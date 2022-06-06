@@ -8,7 +8,7 @@ edition = "2018"
 
 [dependencies]
 clap = "2.33"
-tokio = { version = "0.2", features = ["macros"] }
+tokio = { version = "1.8", features = ["macros"] }
 rusoto_core = "0.45"
 rusoto_s3 = "0.45"
 rusoto_ec2 = "0.45"
